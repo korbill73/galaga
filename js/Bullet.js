@@ -9,8 +9,8 @@ export default class Bullet {
         this.type = type;
 
         this.speed = isEnemy ? 2 : 8; // Base speed
-        if (type === 'missile') this.speed = 4; // Missiles accelerate?
         if (type === 'guided') this.speed = 5;
+        // Missile speed matched to base or faster
 
         this.vx = 0;
         this.vy = isEnemy ? this.speed : -this.speed;
@@ -59,10 +59,13 @@ export default class Bullet {
         }
 
         // Missile Logic (Accelerate)
+        // Optimization: Removed acceleration to keep speed constant and fast as requested
+        /*
         if (!this.isEnemy && this.type === 'missile') {
-            this.speed += 0.2;
-            this.vy = -this.speed;
+             this.speed += 0.2;
+             this.vy = -this.speed;
         }
+        */
 
         this.x += this.vx;
         this.y += this.vy;

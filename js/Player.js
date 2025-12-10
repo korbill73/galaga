@@ -58,8 +58,8 @@ export default class Player {
         if (input.isDown('Space') && this.shootTimer <= 0) {
             this.shoot();
             // Fire rate
-            this.shootTimer = 4; // Very fast
-            if (this.weaponType === 'missile') this.shootTimer = 15; // Missiles slower
+            // Default fast rate
+            this.shootTimer = 4; // Very fast for all weapons including missile
         }
 
         if (this.shootTimer > 0) this.shootTimer--;
