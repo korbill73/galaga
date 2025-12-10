@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Galaga JS</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
@@ -19,14 +21,28 @@
             <div id="start-screen" class="hidden">
                 <h1 class="logo">GALAGA</h1>
                 <p class="blink">PRESS SPACE TO START</p>
+                <p class="blink mobile-hint" style="font-size: 12px; margin-top:20px; display:none;">TAP SCREEN TO START
+                </p>
             </div>
             <div id="game-over-screen" class="hidden">
                 <h1 class="red-text">GAME OVER</h1>
                 <p class="blink">RESULTS</p>
                 <div id="results-stats"></div>
             </div>
+
+            <!-- Mobile Controls -->
+            <div id="mobile-controls">
+                <div class="control-group left">
+                    <button id="btn-left" class="touch-btn">◀</button>
+                    <button id="btn-right" class="touch-btn">▶</button>
+                </div>
+                <div class="control-group right">
+                    <button id="btn-fire" class="touch-btn">●</button>
+                </div>
+            </div>
         </div>
     </div>
     <script type="module" src="js/main.js"></script>
 </body>
+
 </html>

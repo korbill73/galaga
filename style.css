@@ -120,3 +120,68 @@ canvas {
     background-size: 100% 2px, 3px 100%;
     pointer-events: none;
 }
+
+/* Mobile Controls */
+#mobile-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: auto; /* Allow clicks */
+    z-index: 10;
+}
+
+.control-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.touch-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: white;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+    touch-action: manipulation;
+    outline: none;
+     -webkit-tap-highlight-color: transparent;
+}
+
+.touch-btn:active, .touch-btn.active {
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(0.95);
+}
+
+#btn-fire {
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 0, 0, 0.3);
+    border-color: rgba(255, 0, 0, 0.6);
+}
+
+/* Hide valid controls on desktop if strictly requested, but helpful to leave for testing or touch laptops. 
+   We will inspect UserAgent in JS to hide/show or just CSS Media Query. 
+   Let's keep them visible or use media query for small height/width.
+*/
+@media (min-width: 800px) {
+    /* Optional: Hide on large screens if standard keyboard preferred */
+    /* #mobile-controls { display: none; } */
+}
+
+/* Show mobile hint on small screens */
+@media (max-width: 800px) {
+    .mobile-hint {
+        display: block !important;
+    }
+}
