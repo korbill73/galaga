@@ -206,9 +206,11 @@ export default class Game {
                     document.getElementById('score-display').innerText = this.score;
                     this.soundManager.play('explosion');
 
-                    // 10% chance to drop powerup
-                    if (Math.random() < 0.1) {
-                        this.powerUps.push(new PowerUp(this, enemy.x, enemy.y));
+                    // 20% chance to drop powerup
+                    if (Math.random() < 0.2) {
+                        const types = ['spread', 'missile', 'guided'];
+                        const type = types[Math.floor(Math.random() * types.length)];
+                        this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                     }
                 }
             });
@@ -221,7 +223,7 @@ export default class Game {
 
             if (rectIntersect(powerUpRect, playerRect)) {
                 powerUp.markedForDeletion = true;
-                this.player.upgradeWeapon();
+                this.player.upgradeWeapon(powerUp.type);
                 this.soundManager.play('powerup');
                 this.score += 500;
                 document.getElementById('score-display').innerText = this.score;
@@ -230,7 +232,7 @@ export default class Game {
 
         // Enemy Bullets/Bodies hitting Player
         // (Enemy bullets not implemented yet in Enemy.js logic, but body collision is real)
-        const playerRect = { left: this.player.x + 2, right: this.player.x + this.player.width - 2, top: this.player.y + 2, bottom: this.player.y + this.player.height - 2 }; // Hitbox slightly smaller
+        const playerRect = { left: this.player.x + 4, right: this.player.x + this.player.width - 4, top: this.player.y + 4, bottom: this.player.y + this.player.height - 4 }; // Hitbox slightly smaller
 
         // Check against Enemies
         this.enemies.forEach(enemy => {

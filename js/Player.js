@@ -5,43 +5,21 @@ import { GAME_WIDTH, GAME_HEIGHT } from './utils.js';
 export default class Player {
     constructor(game) {
         this.game = game;
-        this.width = 16;
-        this.height = 16;
+        this.width = 36; // Increased size for detailed graphic
+        this.height = 36;
         this.x = GAME_WIDTH / 2 - this.width / 2;
-        this.y = GAME_HEIGHT - 30;
-        this.speed = 2;
-        this.maxBullets = 2; // Will increase with level
+        this.y = GAME_HEIGHT - 40;
+        this.speed = 3; // Slightly faster movement
+        this.maxBullets = 10; // More bullets for faster fire rate
         this.bullets = [];
         this.isDead = false;
-        this.weaponLevel = 1; // 1: Single, 2: Dual, 3: Spread
+        
+        this.weaponType = 'default'; // default, spread, missile, guided
+        this.weaponLevel = 1;
 
-        // Galaga Ship Sprite (Simplified 15x16 approx)
-        // 1 = White, 2 = Red, 0 = Empty
-        const red = '#d00';
-        const white = '#ededed';
-        const blue = '#00f';
-
-        this.sprite = new Sprite({
-            ctx: game.ctx,
-            pixelSize: 1, // We will scale it up in draw
-            data: [
-                [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 1, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0],
-                [0, 0, 0, 1, 1, 1, 2, 2, 2, 1, 1, 1, 0, 0, 0],
-                [0, 0, 1, 1, 2, 1, 2, 2, 2, 1, 2, 1, 1, 0, 0],
-                [0, 1, 1, 2, 2, 1, 2, 2, 2, 1, 2, 2, 1, 1, 0],
-                [1, 1, 2, 2, 2, 1, 1, 2, 1, 1, 2, 2, 2, 1, 1],
-                [1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1],
-                [1, 2, 2, 2, 2, 1, 1, 0, 1, 1, 2, 2, 2, 2, 1],
-                [1, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 2, 2, 2, 1],
-                [0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-                [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0]
-            ]
-        });
+        // Load Image
+        this.image = new Image();
+        this.image.src = 'assets/player.png';
 
         this.shootTimer = 0;
     }
@@ -62,72 +40,84 @@ export default class Player {
         if (this.x > GAME_WIDTH - this.width) this.x = GAME_WIDTH - this.width;
 
         // Shooting
-        // Only allow shooting if we have less than max bullets alive
-        const activeBullets = this.game.bullets.filter(b => !b.isEnemy).length;
-        if (input.isDown('Space') && activeBullets < this.maxBullets && this.shootTimer <= 0) {
+        // Allow rapid fire. 5x faster than before (approx 20 -> 4 frames)
+        
+        if (input.isDown('Space') && this.shootTimer <= 0) {
             this.shoot();
-            this.shootTimer = 20 - (this.weaponLevel * 2); // Faster fire rate for higher levels
-            if (this.shootTimer < 10) this.shootTimer = 10;
+            // Fire rate
+            // Default fast rate
+            this.shootTimer = 4; // Very fast
+            if (this.weaponType === 'missile') this.shootTimer = 15; // Missiles slower
         }
 
         if (this.shootTimer > 0) this.shootTimer--;
     }
 
-    upgradeWeapon() {
-        this.weaponLevel++;
+    upgradeWeapon(type) {
+        if (this.weaponType === type) {
+            this.weaponLevel++;
+        } else {
+            this.weaponType = type;
+            this.weaponLevel = 1;
+        }
         if (this.weaponLevel > 3) this.weaponLevel = 3;
-        this.maxBullets = 2 + this.weaponLevel * 2;
     }
 
     shoot() {
         this.game.soundManager.play('shoot');
 
-        const bulletX = this.x + this.width / 2 - 1;
+        const bulletX = this.x + this.width / 2 - 2; // Center
         const bulletY = this.y;
 
-        if (this.weaponLevel === 1) {
-            // Single Shot
-            this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, false));
-        } else if (this.weaponLevel === 2) {
-            // Dual Shot
-            this.game.bullets.push(new Bullet(this.game, bulletX - 4, bulletY, false));
-            this.game.bullets.push(new Bullet(this.game, bulletX + 4, bulletY, false));
-        } else {
-            // Triple Shot (Spread)
-            this.game.bullets.push(new Bullet(this.game, bulletX, bulletY - 2, false));
-            this.game.bullets.push(new Bullet(this.game, bulletX - 6, bulletY + 2, false));
-            this.game.bullets.push(new Bullet(this.game, bulletX + 6, bulletY + 2, false));
+        // Spread logic
+        if (this.weaponType === 'spread') {
+             this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, false, 'default'));
+             this.game.bullets.push(new Bullet(this.game, bulletX - 4, bulletY + 4, false, 'left-angled'));
+             this.game.bullets.push(new Bullet(this.game, bulletX + 4, bulletY + 4, false, 'right-angled'));
+        } 
+        else if (this.weaponType === 'missile') {
+            this.game.bullets.push(new Bullet(this.game, bulletX + 2, bulletY, false, 'missile'));
+            if (this.weaponLevel >= 2) {
+                this.game.bullets.push(new Bullet(this.game, bulletX - 8, bulletY + 2, false, 'missile'));
+                this.game.bullets.push(new Bullet(this.game, bulletX + 12, bulletY + 2, false, 'missile'));
+            }
+        }
+        else if (this.weaponType === 'guided') {
+            this.game.bullets.push(new Bullet(this.game, bulletX - 10, bulletY + 5, false, 'guided'));
+            this.game.bullets.push(new Bullet(this.game, bulletX + 10, bulletY + 5, false, 'guided'));
+             if (this.weaponLevel >= 2) {
+                this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, false, 'guided'));
+             }
+        }
+        else {
+            // Default
+            this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, false, 'default'));
+            if (this.weaponLevel >= 2) { // Double
+                this.game.bullets.push(new Bullet(this.game, bulletX - 6, bulletY, false, 'default'));
+                this.game.bullets.push(new Bullet(this.game, bulletX + 6, bulletY, false, 'default'));
+            }
+            if (this.weaponLevel >= 3) { // Triple
+                 this.game.bullets.push(new Bullet(this.game, bulletX, bulletY - 5, false, 'default'));
+            }
         }
     }
 
     draw() {
         if (this.isDead) return;
-        // The sprite data is 15x15.
-        // We want to render it at this.x, this.y with appropriate colors.
-        // The sprite class handles simple rendering, but our sprite has color codes (1, 2)
-        // Sprite.js was simple. Let's customize drawing here a bit or update Sprite.js
-        // Actually, Sprite.js takes a "color" but our data has codes.
-        // Let's manually draw for now to handle multi-color properly, or update Sprite logic later.
-        // For now, I'll iterate the data here or pass a color map.
-
-        const palette = {
-            1: '#ededed', // White
-            2: '#d00',    // Red
-            3: '#00f'     // Blue
-        };
-
+        
         const ctx = this.game.ctx;
-        const data = this.sprite.data;
-        const pixelSize = 1; // logical pixel size
-
-        for (let row = 0; row < data.length; row++) {
-            for (let col = 0; col < data[row].length; col++) {
-                const colorCode = data[row][col];
-                if (colorCode !== 0) {
-                    ctx.fillStyle = palette[colorCode];
-                    ctx.fillRect(Math.floor(this.x + col * pixelSize), Math.floor(this.y + row * pixelSize), pixelSize, pixelSize);
-                }
-            }
+        if (this.image.complete) {
+            ctx.save();
+            // Use screen blend mode to make black background transparent-ish
+            ctx.globalCompositeOperation = 'screen'; 
+            ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+            ctx.restore();
+        } else {
+            // Fallback
+            ctx.fillStyle = 'cyan';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.filStyle = 'red';
+            ctx.fillRect(this.x + 16, this.y, 4, 4);
         }
     }
 }

@@ -1,13 +1,25 @@
 export default class PowerUp {
-    constructor(game, x, y) {
+    constructor(game, x, y, type) {
         this.game = game;
         this.x = x;
         this.y = y;
-        this.width = 12;
-        this.height = 12;
+        this.width = 24; // Bigger for icons
+        this.height = 24;
+        this.type = type || 'spread'; // Default
         this.speed = 1.5;
         this.markedForDeletion = false;
-        this.color = '#0f0'; // Green
+
+        this.image = new Image();
+        if (this.type === 'missile') {
+            this.image.src = 'assets/item_missile.png';
+        } else if (this.type === 'guided') {
+            this.image.src = 'assets/item_guided.png';
+        } else if (this.type === 'spread') {
+            this.image.src = 'assets/item_spread.png';
+        } else {
+            this.image.src = 'assets/item_spread.png'; // Fallback
+        }
+
         this.blinkTimer = 0;
     }
 
@@ -21,17 +33,18 @@ export default class PowerUp {
 
     draw() {
         const ctx = this.game.ctx;
-        if (Math.floor(this.blinkTimer / 10) % 2 === 0) {
-            ctx.fillStyle = this.color;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        if (this.image.complete) {
+            ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
         } else {
+            // Draw placeholder
+            ctx.fillStyle = '#f0f';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
             ctx.fillStyle = '#fff';
+            ctx.fillText(this.type[0].toUpperCase(), this.x + 5, this.y + 15);
         }
-
-        // Draw a simple "P" or Box
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-
-        ctx.fillStyle = '#000';
-        ctx.font = '10px Arial';
-        ctx.fillText('P', this.x + 3, this.y + 10);
+        ctx.restore();
     }
 }
