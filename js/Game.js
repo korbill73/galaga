@@ -225,7 +225,7 @@ export default class Game {
 
                     // 20% chance to drop powerup
                     if (Math.random() < 0.2) {
-                        const types = ['spread', 'missile', 'guided', 'bonus'];
+                        const types = ['spread', 'missile', 'guided', 'bonus', 'shield'];
                         const type = types[Math.floor(Math.random() * types.length)];
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                     }
@@ -264,7 +264,13 @@ export default class Game {
 
                 const enemyRect = { left: enemy.x + 2, right: enemy.x + enemy.width - 2, top: enemy.y + 2, bottom: enemy.y + enemy.height - 2 };
                 if (rectIntersect(playerRect, enemyRect)) {
-                    this.handlePlayerDeath();
+                    if (this.player.shieldTimer > 0) {
+                        // Shield hit, maybe destroy enemy but player safe?
+                        enemy.markedForDeletion = true;
+                        this.soundManager.play('explosion');
+                    } else {
+                        this.handlePlayerDeath();
+                    }
                     break;
                 }
             }

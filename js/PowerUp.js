@@ -18,6 +18,8 @@ export default class PowerUp {
             this.image.src = 'assets/item_spread.png';
         } else if (this.type === 'bonus') {
             this.image.src = 'assets/item_bonus.png';
+        } else if (this.type === 'shield') {
+            this.image.src = 'assets/item_shield.png';
         } else {
             this.image.src = 'assets/item_spread.png'; // Fallback
         }
