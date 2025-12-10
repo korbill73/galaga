@@ -44,18 +44,26 @@ export default class InputHandler {
         bindBtn(btnFire, 'Space');
 
         // Mobile "Tap to Start" handling
-        // We can map any touch on start screen to 'Space' momentarily or just let the fire button do it.
-        // But users often tap anywhere.
+        // Bind to window to ensure we catch it anywhere on start screen
+        const startHandler = (e) => {
+            // Only simulate start if we are in menu (logic usually handled by game state request, but simulating key works)
+            // Simulating 'Space' press
+            if (!this.keys['Space']) {
+                this.keys['Space'] = true;
+                setTimeout(() => this.keys['Space'] = false, 200);
+            }
+        };
+
         const startScreen = document.getElementById('start-screen');
         if (startScreen) {
-            startScreen.addEventListener('touchstart', (e) => {
-                this.keys['Space'] = true;
-                setTimeout(() => this.keys['Space'] = false, 100);
-            });
-            startScreen.addEventListener('click', (e) => {
-                this.keys['Space'] = true;
-                setTimeout(() => this.keys['Space'] = false, 100);
-            });
+            startScreen.addEventListener('touchstart', startHandler, { passive: false });
+            startScreen.addEventListener('click', startHandler);
+        }
+
+        // Also bind the Fire button to start
+        if (btnFire) {
+            btnFire.addEventListener('touchstart', startHandler, { passive: false });
+            btnFire.addEventListener('click', startHandler);
         }
     }
 }

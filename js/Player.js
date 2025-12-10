@@ -54,8 +54,9 @@ export default class Player {
         if (this.x > GAME_WIDTH - this.width) this.x = GAME_WIDTH - this.width;
 
         // Shooting
+        // Auto-Fire enabled (no input check needed for space)
 
-        if (input.isDown('Space') && this.shootTimer <= 0) {
+        if (this.shootTimer <= 0) {
             this.shoot();
             // Fire rate
             // Default fast rate

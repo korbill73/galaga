@@ -28,7 +28,7 @@ body {
 
 #game-container {
     position: relative;
-    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
     border: 2px solid #333;
 }
 
@@ -36,7 +36,7 @@ canvas {
     background-color: var(--canvas-bg);
     display: block;
     /* Original aspect ratio roughly 224:288. check Game.js for real size */
-    image-rendering: pixelated; 
+    image-rendering: pixelated;
 }
 
 #ui-layer {
@@ -66,7 +66,8 @@ canvas {
     margin-bottom: 5px;
 }
 
-#score-display, #highscore-display {
+#score-display,
+#highscore-display {
     color: var(--retro-white);
     font-size: 16px;
 }
@@ -75,7 +76,8 @@ canvas {
     display: none !important;
 }
 
-#start-screen, #game-over-screen {
+#start-screen,
+#game-over-screen {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -99,7 +101,9 @@ canvas {
 }
 
 @keyframes blinker {
-    50% { opacity: 0; }
+    50% {
+        opacity: 0;
+    }
 }
 
 .red-text {
@@ -127,48 +131,49 @@ canvas {
     bottom: 20px;
     left: 0;
     width: 100%;
-    height: 100px;
+    height: 120px;
+    /* Taller area */
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+    /* Center them since no fire btn */
     padding: 0 20px;
-    pointer-events: auto; /* Allow clicks */
+    pointer-events: auto;
+    /* Allow clicks */
     z-index: 10;
 }
 
 .control-group {
     display: flex;
-    gap: 20px;
+    gap: 40px;
+    /* Wider gap between L/R */
     align-items: center;
 }
 
 .touch-btn {
-    width: 60px;
-    height: 60px;
+    width: 90px;
+    /* Much bigger */
+    height: 90px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    border: 3px solid rgba(255, 255, 255, 0.6);
     color: white;
-    font-size: 24px;
+    font-size: 32px;
     display: flex;
     justify-content: center;
     align-items: center;
     user-select: none;
     touch-action: manipulation;
     outline: none;
-     -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.touch-btn:active, .touch-btn.active {
+.touch-btn:active,
+.touch-btn.active {
     background: rgba(255, 255, 255, 0.5);
     transform: scale(0.95);
 }
 
-#btn-fire {
-    width: 70px;
-    height: 70px;
-    background: rgba(255, 0, 0, 0.3);
-    border-color: rgba(255, 0, 0, 0.6);
-}
+/* Fire btn removed */
 
 /* Hide valid controls on desktop if strictly requested, but helpful to leave for testing or touch laptops. 
    We will inspect UserAgent in JS to hide/show or just CSS Media Query. 
