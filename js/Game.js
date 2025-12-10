@@ -1,6 +1,8 @@
 import Player from './Player.js';
 import InputHandler from './InputHandler.js';
 import Enemy from './Enemy.js';
+import PowerUp from './PowerUp.js';
+import SoundManager from './SoundManager.js';
 import { rectIntersect, GAME_WIDTH, GAME_HEIGHT } from './utils.js';
 
 export default class Game {
@@ -19,8 +21,10 @@ export default class Game {
 
         this.player = new Player(this);
         this.input = new InputHandler();
+        this.soundManager = new SoundManager();
         this.bullets = [];
         this.enemies = [];
+        this.powerUps = [];
         this.particles = []; // For explosions
 
         this.score = 0;
@@ -75,6 +79,7 @@ export default class Game {
         this.score = 0;
         this.bullets = [];
         this.enemies = [];
+        this.powerUps = [];
         this.player = new Player(this);
         document.getElementById('score-display').innerText = this.score;
         this.spawnWave();
@@ -137,6 +142,7 @@ export default class Game {
 
         if (this.state === 'MENU') {
             if (this.input.isDown('Space')) {
+                this.soundManager.play('menu_select'); // Optional if we had it, strictly shoot/explode for now
                 this.setState('PLAYING');
             }
             return;
@@ -170,6 +176,14 @@ export default class Game {
             }
         });
 
+        // PowerUps
+        this.powerUps.forEach((powerUp, index) => {
+            powerUp.update();
+            if (powerUp.markedForDeletion) {
+                this.powerUps.splice(index, 1);
+            }
+        });
+
         if (this.enemies.length === 0) {
             // Respawn wave if cleared (Infinite Loop for now)
             setTimeout(() => this.spawnWave(), 1000);
@@ -190,9 +204,28 @@ export default class Game {
                     bullet.markedForDeletion = true;
                     this.score += 100; // Arbitrary score
                     document.getElementById('score-display').innerText = this.score;
-                    // TODO: Add explosion effect
+                    this.soundManager.play('explosion');
+
+                    // 10% chance to drop powerup
+                    if (Math.random() < 0.1) {
+                        this.powerUps.push(new PowerUp(this, enemy.x, enemy.y));
+                    }
                 }
             });
+        });
+
+        // Player vs PowerUps
+        this.powerUps.forEach(powerUp => {
+            const powerUpRect = { left: powerUp.x, right: powerUp.x + powerUp.width, top: powerUp.y, bottom: powerUp.y + powerUp.height };
+            const playerRect = { left: this.player.x, right: this.player.x + this.player.width, top: this.player.y, bottom: this.player.y + this.player.height };
+
+            if (rectIntersect(powerUpRect, playerRect)) {
+                powerUp.markedForDeletion = true;
+                this.player.upgradeWeapon();
+                this.soundManager.play('powerup');
+                this.score += 500;
+                document.getElementById('score-display').innerText = this.score;
+            }
         });
 
         // Enemy Bullets/Bodies hitting Player
@@ -230,6 +263,7 @@ export default class Game {
             this.player.draw();
             this.bullets.forEach(b => b.draw());
             this.enemies.forEach(e => e.draw());
+            this.powerUps.forEach(p => p.draw());
         }
     }
 }

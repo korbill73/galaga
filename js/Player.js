@@ -10,9 +10,10 @@ export default class Player {
         this.x = GAME_WIDTH / 2 - this.width / 2;
         this.y = GAME_HEIGHT - 30;
         this.speed = 2;
-        this.maxBullets = 2;
+        this.maxBullets = 2; // Will increase with level
         this.bullets = [];
         this.isDead = false;
+        this.weaponLevel = 1; // 1: Single, 2: Dual, 3: Spread
 
         // Galaga Ship Sprite (Simplified 15x16 approx)
         // 1 = White, 2 = Red, 0 = Empty
@@ -65,17 +66,38 @@ export default class Player {
         const activeBullets = this.game.bullets.filter(b => !b.isEnemy).length;
         if (input.isDown('Space') && activeBullets < this.maxBullets && this.shootTimer <= 0) {
             this.shoot();
-            this.shootTimer = 20; // Cooldown
+            this.shootTimer = 20 - (this.weaponLevel * 2); // Faster fire rate for higher levels
+            if (this.shootTimer < 10) this.shootTimer = 10;
         }
 
         if (this.shootTimer > 0) this.shootTimer--;
     }
 
+    upgradeWeapon() {
+        this.weaponLevel++;
+        if (this.weaponLevel > 3) this.weaponLevel = 3;
+        this.maxBullets = 2 + this.weaponLevel * 2;
+    }
+
     shoot() {
-        // Spawn bullet at center top of ship
+        this.game.soundManager.play('shoot');
+
         const bulletX = this.x + this.width / 2 - 1;
         const bulletY = this.y;
-        this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, false));
+
+        if (this.weaponLevel === 1) {
+            // Single Shot
+            this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, false));
+        } else if (this.weaponLevel === 2) {
+            // Dual Shot
+            this.game.bullets.push(new Bullet(this.game, bulletX - 4, bulletY, false));
+            this.game.bullets.push(new Bullet(this.game, bulletX + 4, bulletY, false));
+        } else {
+            // Triple Shot (Spread)
+            this.game.bullets.push(new Bullet(this.game, bulletX, bulletY - 2, false));
+            this.game.bullets.push(new Bullet(this.game, bulletX - 6, bulletY + 2, false));
+            this.game.bullets.push(new Bullet(this.game, bulletX + 6, bulletY + 2, false));
+        }
     }
 
     draw() {
