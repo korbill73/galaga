@@ -165,13 +165,17 @@ export default class Enemy {
             // Hover
             this.x = this.targetX + Math.sin(Date.now() / 400 + this.entranceOffset) * 2;
 
-            // Random dive logic
-            if (Math.random() < 0.0005) {
+            // Random dive logic - scales with level
+            // Base 0.0005, increases by 20% per level or similar linear
+            const diveChance = 0.0005 + (this.game.level * 0.0001);
+            if (Math.random() < diveChance) {
                 this.state = 'dive';
             }
         }
         else if (this.state === 'dive') {
-            this.y += 2.5;
+            // Speed scales with level
+            const speed = 2.5 + (this.game.level * 0.1);
+            this.y += speed;
             this.x += Math.sin(this.y / 25) * 4;
 
             if (this.y > 300) {
