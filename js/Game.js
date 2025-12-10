@@ -77,12 +77,25 @@ export default class Game {
 
     resetGame() {
         this.score = 0;
+        this.lives = 10; // Requested 10 lives
         this.bullets = [];
         this.enemies = [];
         this.powerUps = [];
         this.player = new Player(this);
         document.getElementById('score-display').innerText = this.score;
+        this.updateLivesDisplay(); // Custom method needed or just reuse score board? 
+        // Let's reuse '1UP' label or add new one? For now, we assume simple logic.
         this.spawnWave();
+    }
+
+    updateLivesDisplay() {
+        // Find or create lives display
+        // The original HTML had <div class="score-label">1UP</div>
+        // Let's append lives to it or assume "1UP" means Player 1.
+        // I'll console log for now or add a small text.
+        // Actually, we can update the '1UP' text to 'LIVES: 10'
+        const label = document.querySelector('.score-label');
+        if (label) label.innerText = `LIVES: ${this.lives}`;
     }
 
     spawnWave() {
@@ -95,11 +108,6 @@ export default class Game {
 
         let delayCounter = 0;
         const delayStep = 10; // Frames between each enemy launch
-
-        // We want them to fly in streams.
-        // Let's create a list of definitions and sort them or just iterate.
-        // Order: Bees first, then Butterflies, then Bosses?
-        // Or mixed.
 
         const createEnemy = (x, y, type) => {
             const enemy = new Enemy(this, x, y, type);
@@ -142,7 +150,7 @@ export default class Game {
 
         if (this.state === 'MENU') {
             if (this.input.isDown('Space')) {
-                this.soundManager.play('menu_select'); // Optional if we had it, strictly shoot/explode for now
+                this.soundManager.play('menu_select');
                 this.setState('PLAYING');
             }
             return;
@@ -151,7 +159,6 @@ export default class Game {
         if (this.state === 'GAMEOVER') {
             if (this.input.isDown('Enter') || this.input.isDown('Space')) {
                 this.setState('MENU');
-                // Debounce simple return to menu logic needed usually, but okay for now
             }
             return;
         }
@@ -162,7 +169,6 @@ export default class Game {
         // Bullets
         this.bullets.forEach((bullet, index) => {
             bullet.update();
-            // Remove offscreen
             if (bullet.markedForDeletion) {
                 this.bullets.splice(index, 1);
             }
@@ -185,67 +191,104 @@ export default class Game {
         });
 
         if (this.enemies.length === 0) {
-            // Respawn wave if cleared (Infinite Loop for now)
-            setTimeout(() => this.spawnWave(), 1000);
+            setTimeout(() => this.spawnWave(), 1000); // Infinite waves
         }
 
         this.checkCollisions();
     }
 
     checkCollisions() {
+        // Optimization: Filter bullets once
+        const playerBullets = this.bullets.filter(b => !b.isEnemy);
+
         // Player Bullets hitting Enemies
-        this.bullets.filter(b => !b.isEnemy).forEach(bullet => {
-            this.enemies.forEach(enemy => {
-                const bulletRect = { left: bullet.x, right: bullet.x + bullet.width, top: bullet.y, bottom: bullet.y + bullet.height };
+        // O(N*M) loop here might be slow if 100x100.
+        // Simple optimization: traditional for-loops are faster than forEach.
+        for (let i = 0; i < playerBullets.length; i++) {
+            const bullet = playerBullets[i];
+            if (bullet.markedForDeletion) continue;
+
+            const bulletRect = { left: bullet.x, right: bullet.x + bullet.width, top: bullet.y, bottom: bullet.y + bullet.height };
+
+            for (let j = 0; j < this.enemies.length; j++) {
+                const enemy = this.enemies[j];
+                if (enemy.markedForDeletion || enemy.delay > 0) continue; // Don't hit invisible enemies
+
                 const enemyRect = { left: enemy.x, right: enemy.x + enemy.width, top: enemy.y, bottom: enemy.y + enemy.height };
 
                 if (rectIntersect(bulletRect, enemyRect)) {
                     enemy.markedForDeletion = true;
                     bullet.markedForDeletion = true;
-                    this.score += 100; // Arbitrary score
+                    this.score += 100;
                     document.getElementById('score-display').innerText = this.score;
                     this.soundManager.play('explosion');
 
                     // 20% chance to drop powerup
                     if (Math.random() < 0.2) {
-                        const types = ['spread', 'missile', 'guided'];
+                        const types = ['spread', 'missile', 'guided', 'bonus'];
                         const type = types[Math.floor(Math.random() * types.length)];
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                     }
+                    break; // Bullet hit something, stop checking this bullet
                 }
-            });
-        });
+            }
+        }
 
         // Player vs PowerUps
-        this.powerUps.forEach(powerUp => {
+        for (let i = 0; i < this.powerUps.length; i++) {
+            const powerUp = this.powerUps[i];
             const powerUpRect = { left: powerUp.x, right: powerUp.x + powerUp.width, top: powerUp.y, bottom: powerUp.y + powerUp.height };
             const playerRect = { left: this.player.x, right: this.player.x + this.player.width, top: this.player.y, bottom: this.player.y + this.player.height };
 
             if (rectIntersect(powerUpRect, playerRect)) {
                 powerUp.markedForDeletion = true;
-                this.player.upgradeWeapon(powerUp.type);
                 this.soundManager.play('powerup');
-                this.score += 500;
+
+                if (powerUp.type === 'bonus') {
+                    this.score += 2000;
+                } else {
+                    this.player.upgradeWeapon(powerUp.type);
+                    this.score += 500;
+                }
                 document.getElementById('score-display').innerText = this.score;
             }
-        });
+        }
 
-        // Enemy Bullets/Bodies hitting Player
-        // (Enemy bullets not implemented yet in Enemy.js logic, but body collision is real)
-        const playerRect = { left: this.player.x + 4, right: this.player.x + this.player.width - 4, top: this.player.y + 4, bottom: this.player.y + this.player.height - 4 }; // Hitbox slightly smaller
+        // Enemy Collision (Body)
+        if (!this.player.isDead) { // Don't check if already dead
+            const playerRect = { left: this.player.x + 4, right: this.player.x + this.player.width - 4, top: this.player.y + 4, bottom: this.player.y + this.player.height - 4 };
 
-        // Check against Enemies
-        this.enemies.forEach(enemy => {
-            const enemyRect = { left: enemy.x + 2, right: enemy.x + enemy.width - 2, top: enemy.y + 2, bottom: enemy.y + enemy.height - 2 };
-            if (rectIntersect(playerRect, enemyRect)) {
-                this.handlePlayerDeath();
+            for (let i = 0; i < this.enemies.length; i++) {
+                const enemy = this.enemies[i];
+                if (enemy.delay > 0) continue;
+
+                const enemyRect = { left: enemy.x + 2, right: enemy.x + enemy.width - 2, top: enemy.y + 2, bottom: enemy.y + enemy.height - 2 };
+                if (rectIntersect(playerRect, enemyRect)) {
+                    this.handlePlayerDeath();
+                    break;
+                }
             }
-        });
+        }
     }
 
     handlePlayerDeath() {
-        this.player.isDead = true;
-        this.setState('GAMEOVER');
+        this.lives--;
+        this.updateLivesDisplay();
+        this.soundManager.play('explosion');
+
+        if (this.lives <= 0) {
+            this.player.isDead = true;
+            this.setState('GAMEOVER');
+        } else {
+            // Respawn logic (temporary invincibility or just reset position?)
+            // For now, let's reset wave or just player pos.
+            // Reset player and clear enemies near spawn?
+            // Simplest: Clear all bullets, reset player to center.
+            this.bullets = [];
+            this.player.x = GAME_WIDTH / 2 - this.player.width / 2;
+            this.player.y = GAME_HEIGHT - 40;
+            // Maybe flicker effect? (Not implemented yet)
+        }
     }
 
     draw() {

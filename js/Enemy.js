@@ -1,5 +1,5 @@
-import Sprite from './Sprite.js';
-import Bullet from './Bullet.js';
+// Cache object to store rendered sprites
+const SpriteCache = {};
 
 export default class Enemy {
     constructor(game, x, y, type) {
@@ -36,12 +36,16 @@ export default class Enemy {
         // Spawn Delay
         this.delay = 0;
 
-        this.defineSprites();
+        // Initialize Sprite Cache if needed
+        if (!SpriteCache[this.type]) {
+            this.generateSpriteCache(this.type);
+        }
     }
 
-    defineSprites() {
+    generateSpriteCache(type) {
+        // Define data locally
         // Bee (Yellow/White)
-        this.beeSprite = [
+        const beeSprite = [
             [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 2, 1, 1, 1, 2, 1, 1, 0, 0, 0],
@@ -56,7 +60,7 @@ export default class Enemy {
         ];
 
         // Butterfly (Red/White)
-        this.butterflySprite = [
+        const butterflySprite = [
             [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 0, 1, 1, 2, 2, 1, 2, 2, 1, 1, 0, 0, 0],
@@ -71,7 +75,7 @@ export default class Enemy {
         ];
 
         // Boss (Green/Purple/White)
-        this.bossSprite = [
+        const bossSprite = [
             [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0],
@@ -86,6 +90,40 @@ export default class Enemy {
             [0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0],
             [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
         ];
+
+        let data = [];
+        let palette = {};
+
+        if (type === 'bee') {
+            data = beeSprite;
+            palette = { 1: '#00f', 2: '#ff0' };
+        } else if (type === 'butterfly') {
+            data = butterflySprite;
+            palette = { 1: '#d00', 2: '#ff0' };
+        } else if (type === 'boss') {
+            data = bossSprite;
+            palette = { 1: '#00f', 2: '#d00', 3: '#2d2' };
+        }
+
+        // Create offscreen canvas
+        const c = document.createElement('canvas');
+        c.width = 16;
+        c.height = 16;
+        const ctx = c.getContext('2d');
+
+        // Draw pixel data to canvas
+        for (let row = 0; row < data.length; row++) {
+            for (let col = 0; col < data[row].length; col++) {
+                const colorCode = data[row][col];
+                if (colorCode !== 0) {
+                    ctx.fillStyle = palette[colorCode];
+                    ctx.fillRect(col, row, 1, 1);
+                }
+            }
+        }
+
+        // Save to cache
+        SpriteCache[type] = c;
     }
 
     update() {
@@ -148,31 +186,15 @@ export default class Enemy {
         if (this.delay > 0) return; // Don't draw if waiting
 
         const ctx = this.game.ctx;
-        let data = [];
-        let palette = {};
 
-        if (this.type === 'bee') {
-            data = this.beeSprite;
-            palette = { 1: '#00f', 2: '#ff0' };
-        } else if (this.type === 'butterfly') {
-            data = this.butterflySprite;
-            palette = { 1: '#d00', 2: '#ff0' };
-        } else if (this.type === 'boss') {
-            data = this.bossSprite;
-            palette = { 1: '#00f', 2: '#d00', 3: '#2d2' };
-        }
-
-        const pixelSize = 1;
-
-        // Draw centered on x,y
-        for (let row = 0; row < data.length; row++) {
-            for (let col = 0; col < data[row].length; col++) {
-                const colorCode = data[row][col];
-                if (colorCode !== 0) {
-                    ctx.fillStyle = palette[colorCode] || '#fff';
-                    ctx.fillRect(Math.floor(this.x + col * pixelSize), Math.floor(this.y + row * pixelSize), pixelSize, pixelSize);
-                }
-            }
+        // Use cached sprite
+        const img = SpriteCache[this.type];
+        if (img) {
+            ctx.drawImage(img, Math.floor(this.x), Math.floor(this.y));
+        } else {
+            // Fallback
+            ctx.fillStyle = 'red';
+            ctx.fillRect(this.x, this.y, 16, 16);
         }
     }
 }
