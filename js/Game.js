@@ -218,7 +218,16 @@ export default class Game {
 
                 if (rectIntersect(bulletRect, enemyRect)) {
                     enemy.markedForDeletion = true;
-                    bullet.markedForDeletion = true;
+
+                    // Piercing Logic
+                    if (bullet.pierce) {
+                        bullet.pierce--;
+                        if (bullet.pierce <= 0) bullet.markedForDeletion = true;
+                    } else {
+                        bullet.pierce = 0; // Default safety
+                        bullet.markedForDeletion = true;
+                    }
+
                     this.score += 100;
                     document.getElementById('score-display').innerText = this.score;
                     this.soundManager.play('explosion');
@@ -229,7 +238,11 @@ export default class Game {
                         const type = types[Math.floor(Math.random() * types.length)];
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                     }
-                    break; // Bullet hit something, stop checking this bullet
+                    // Don't break if piercing, continue to check other enemies? 
+                    // Actually, if we hit one, we shouldn't hit the *same* one again.
+                    // But hitting multiple in one frame is rare unless overlapping.
+                    // If piercing, we just don't delete bullet.
+                    if (bullet.markedForDeletion) break;
                 }
             }
         }
@@ -265,7 +278,7 @@ export default class Game {
                 const enemyRect = { left: enemy.x + 2, right: enemy.x + enemy.width - 2, top: enemy.y + 2, bottom: enemy.y + enemy.height - 2 };
                 if (rectIntersect(playerRect, enemyRect)) {
                     if (this.player.shieldTimer > 0) {
-                        // Shield hit, maybe destroy enemy but player safe?
+                        // Shield hit
                         enemy.markedForDeletion = true;
                         this.soundManager.play('explosion');
                     } else {
@@ -286,14 +299,13 @@ export default class Game {
             this.player.isDead = true;
             this.setState('GAMEOVER');
         } else {
-            // Respawn logic (temporary invincibility or just reset position?)
-            // For now, let's reset wave or just player pos.
-            // Reset player and clear enemies near spawn?
-            // Simplest: Clear all bullets, reset player to center.
+            // Respawn logic
             this.bullets = [];
             this.player.x = GAME_WIDTH / 2 - this.player.width / 2;
             this.player.y = GAME_HEIGHT - 40;
-            // Maybe flicker effect? (Not implemented yet)
+
+            // Grant Shield on Respawn
+            this.player.shieldTimer = 300; // 5 seconds of safety
         }
     }
 

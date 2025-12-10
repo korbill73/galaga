@@ -10,7 +10,14 @@ export default class Bullet {
 
         this.speed = isEnemy ? 2 : 8; // Base speed
         if (type === 'guided') this.speed = 5;
-        // Missile speed matched to base or faster
+
+        // Missile: Large, Piercing, Fast
+        this.pierce = 1;
+        if (type === 'missile') {
+            this.width = 6;
+            this.height = 12;
+            this.pierce = 999; // Super penetrating (effectively infinite or just very high)
+        }
 
         this.vx = 0;
         this.vy = isEnemy ? this.speed : -this.speed;
