@@ -6,7 +6,7 @@ export default class Bullet {
         this.width = 2;
         this.height = 4;
         this.isEnemy = isEnemy;
-        this.speed = isEnemy ? 2 : 8; // Faster player bullets (was 4)
+        this.speed = isEnemy ? 2 : 20; // Hyper fast speed (requested 10x feel)
         this.markedForDeletion = false;
         this.color = isEnemy ? '#ff0' : '#0ff'; // Yellow for enemy, Cyan for player
     }
