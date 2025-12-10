@@ -53,23 +53,43 @@ canvas {
 
 #score-board {
     display: flex;
-    justify-content: space-around;
-    padding: 10px;
+    justify-content: space-between;
+    /* Space out better */
+    padding: 10px 20px;
+    /* Add side padding */
     width: 100%;
     text-align: center;
     color: var(--retro-red);
     text-shadow: 2px 2px 0px #000;
+    z-index: 20;
+    /* Ensure on top */
+    position: relative;
 }
 
 .score-label {
-    font-size: 16px;
+    font-size: 14px;
+    /* Slightly smaller */
     margin-bottom: 5px;
 }
 
 #score-display,
 #highscore-display {
     color: var(--retro-white);
-    font-size: 16px;
+    font-size: 14px;
+}
+
+/* Mobile specific for UI */
+@media (max-width: 600px) {
+    #score-board {
+        padding: 5px;
+    }
+
+    .score-label,
+    #score-display,
+    #highscore-display {
+        font-size: 10px;
+        /* Compress for small width */
+    }
 }
 
 .hidden {
@@ -127,6 +147,8 @@ canvas {
 
 /* Mobile Controls */
 #mobile-controls {
+    display: none;
+    /* Hidden, using full screen touch drag */
     position: absolute;
     bottom: 20px;
     left: 0;

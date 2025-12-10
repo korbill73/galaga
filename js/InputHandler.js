@@ -22,41 +22,79 @@ export default class InputHandler {
     }
 
     attachTouchControls() {
-        // Map buttons to keycodes
-        const btnLeft = document.getElementById('btn-left');
-        const btnRight = document.getElementById('btn-right');
-        const btnFire = document.getElementById('btn-fire');
+        // Remove old buttons from DOM if possible or just ignore them. 
+        // User asked to move by finger movement, so buttons are less useful.
+        // We will make the whole screen a touch area for movement.
 
-        const bindBtn = (elem, code) => {
-            if (!elem) return;
-            // Touch
-            elem.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[code] = true; elem.classList.add('active'); });
-            elem.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[code] = false; elem.classList.remove('active'); });
+        const touchZone = document.body; // Use whole body
+        let startX = 0;
 
-            // Mouse (for desktop testing)
-            elem.addEventListener('mousedown', (e) => { this.keys[code] = true; elem.classList.add('active'); });
-            elem.addEventListener('mouseup', (e) => { this.keys[code] = false; elem.classList.remove('active'); });
-            elem.addEventListener('mouseleave', (e) => { this.keys[code] = false; elem.classList.remove('active'); });
-        };
-
-        bindBtn(btnLeft, 'ArrowLeft');
-        bindBtn(btnRight, 'ArrowRight');
-        bindBtn(btnFire, 'Space');
-
-        // Mobile "Tap to Start" handling
-        // Bind to window/document to ensure we catch it anywhere
-        const startHandler = (e) => {
-            // If game is not started, any tap should simulate Space
+        touchZone.addEventListener('touchstart', (e) => {
+            // e.preventDefault(); // Might block scrolling, which is good for game
+            startX = e.touches[0].clientX;
+            // Also trigger start if needed
             if (!this.keys['Space']) {
                 this.keys['Space'] = true;
                 setTimeout(() => this.keys['Space'] = false, 200);
             }
-        };
+        }, { passive: false });
 
-        // Attach to body for maximum coverage
-        document.body.addEventListener('touchstart', startHandler, { passive: false });
-        document.body.addEventListener('click', startHandler);
+        touchZone.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            const currentX = e.touches[0].clientX;
+            const diff = currentX - startX;
 
-        // Keep button logic for gameplay
+            // Sensitivity threshold
+            if (diff > 5) {
+                this.keys['ArrowRight'] = true;
+                this.keys['ArrowLeft'] = false;
+                startX = currentX; // Reset to keep moving if dragging continues
+            } else if (diff < -5) {
+                this.keys['ArrowLeft'] = true;
+                this.keys['ArrowRight'] = false;
+                startX = currentX;
+            } else {
+                // Stop if small movement?
+                // Actually better to just hold the key until touch ends or direction changes.
+                // But Player.js moves constantly if key is true.
+                // So we just update direction.
+            }
+        }, { passive: false });
+
+        touchZone.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.keys['ArrowLeft'] = false;
+            this.keys['ArrowRight'] = false;
+        });
+
+        // Mouse Fallback for testing on PC without keys
+        let isDragging = false;
+        touchZone.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            isDragging = true;
+            if (!this.keys['Space']) {
+                this.keys['Space'] = true;
+                setTimeout(() => this.keys['Space'] = false, 200);
+            }
+        });
+        touchZone.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const currentX = e.clientX;
+            const diff = currentX - startX;
+            if (diff > 5) {
+                this.keys['ArrowRight'] = true;
+                this.keys['ArrowLeft'] = false;
+                startX = currentX;
+            } else if (diff < -5) {
+                this.keys['ArrowLeft'] = true;
+                this.keys['ArrowRight'] = false;
+                startX = currentX;
+            }
+        });
+        touchZone.addEventListener('mouseup', () => {
+            isDragging = false;
+            this.keys['ArrowLeft'] = false;
+            this.keys['ArrowRight'] = false;
+        });
     }
 }
