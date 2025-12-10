@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+    --bg-color: #111;
+    --canvas-bg: #000;
+    --retro-red: #d00;
+    --retro-white: #ededed;
+    --retro-blue: #00f;
+    --retro-yellow: #ff0;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--retro-white);
+    font-family: 'Press Start 2P', cursive;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    border: 2px solid #333;
+}
+
+canvas {
+    background-color: var(--canvas-bg);
+    display: block;
+    /* Original aspect ratio roughly 224:288. check Game.js for real size */
+    image-rendering: pixelated; 
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+#score-board {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    width: 100%;
+    text-align: center;
+    color: var(--retro-red);
+    text-shadow: 2px 2px 0px #000;
+}
+
+.score-label {
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+#score-display, #highscore-display {
+    color: var(--retro-white);
+    font-size: 16px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#start-screen, #game-over-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 100%;
+}
+
+.logo {
+    font-size: 48px;
+    background: linear-gradient(to bottom, #f00, #ff0, #0f0, #0ff, #00f, #f0f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 40px;
+    filter: drop-shadow(4px 4px 0px #000);
+}
+
+.blink {
+    animation: blinker 1s linear infinite;
+    color: var(--retro-yellow);
+}
+
+@keyframes blinker {
+    50% { opacity: 0; }
+}
+
+.red-text {
+    color: var(--retro-red);
+}
+
+/* CRT Scanline Effect Overlay */
+#game-container::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+}

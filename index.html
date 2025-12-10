@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaga JS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui-layer">
+            <div id="score-board">
+                <div class="score-label">1UP</div>
+                <div id="score-display">00</div>
+                <div class="score-label">HIGH SCORE</div>
+                <div id="highscore-display">20000</div>
+            </div>
+            <div id="start-screen" class="hidden">
+                <h1 class="logo">GALAGA</h1>
+                <p class="blink">PRESS SPACE TO START</p>
+            </div>
+            <div id="game-over-screen" class="hidden">
+                <h1 class="red-text">GAME OVER</h1>
+                <p class="blink">RESULTS</p>
+                <div id="results-stats"></div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
