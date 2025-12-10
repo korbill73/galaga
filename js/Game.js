@@ -232,8 +232,8 @@ export default class Game {
                     document.getElementById('score-display').innerText = this.score;
                     this.soundManager.play('explosion');
 
-                    // 20% chance to drop powerup
-                    if (Math.random() < 0.2) {
+                    // 20% -> 14% chance to drop powerup (30% reduction)
+                    if (Math.random() < 0.14) {
                         const types = ['spread', 'missile', 'guided', 'bonus', 'shield'];
                         const type = types[Math.floor(Math.random() * types.length)];
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));

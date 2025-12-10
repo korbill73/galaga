@@ -3,8 +3,8 @@ export default class PowerUp {
         this.game = game;
         this.x = x;
         this.y = y;
-        this.width = 24; // Bigger for icons
-        this.height = 24;
+        this.width = 16; // Reduced by 30% from 24
+        this.height = 16;
         this.type = type || 'spread'; // Default
         this.speed = 1.5;
         this.markedForDeletion = false;
