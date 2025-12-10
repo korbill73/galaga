@@ -20,25 +20,34 @@ body {
     color: var(--retro-white);
     font-family: 'Press Start 2P', cursive;
     height: 100vh;
+    width: 100vw;
+    /* Explicit width */
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    touch-action: none;
+    /* Prevent swipe navigation/scrolling on mobile */
 }
 
 #game-container {
     position: relative;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
     border: 2px solid #333;
-    /* Responsive scaling */
-    width: 100%;
+
+    /* Responsive scaling - fit within viewport */
+    width: 100vw;
     max-width: 448px;
-    /* 2x original width or similar reasonable size for mobile */
-    aspect-ratio: 224/288;
-    /* Ensure aspect ratio */
+    /* Max desktop size */
     height: auto;
-    max-height: 95vh;
-    /* Don't overflow vertical */
+    aspect-ratio: 224/288;
+    max-height: 90vh;
+    /* Leave room for browser bars */
+
+    /* Center in parent */
+    margin: 0 auto;
+    overflow: hidden;
+    /* Prevent dragging the page or scrollbars */
 }
 
 canvas {
