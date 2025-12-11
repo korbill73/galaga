@@ -234,8 +234,15 @@ export default class Enemy {
             this.x += Math.sin(this.y / 25) * 2.25;
 
             if (this.y > 300) {
-                // Reset to new random position near target for variety
-                this.originX = this.targetX + (Math.random() - 0.5) * 40;
+                // Reset to center area instead of edges to prevent getting stuck
+                const GAME_WIDTH = 224;
+                const centerX = GAME_WIDTH / 2;
+                // Spawn near center with random offset (±60 pixels from center)
+                this.originX = centerX + (Math.random() - 0.5) * 120;
+                // Clamp to safe bounds
+                if (this.originX < 30) this.originX = 30;
+                if (this.originX > GAME_WIDTH - 30) this.originX = GAME_WIDTH - 30;
+
                 this.originY = -50 - Math.random() * 30;
                 this.x = this.originX;
                 this.y = this.originY;
