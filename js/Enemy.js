@@ -141,19 +141,19 @@ export default class Enemy {
         }
 
         if (this.state === 'entrance') {
-            // Loop entrance - SLOWED DOWN 53%
-            this.t += 0.007;
+            // Loop entrance - FURTHER SLOWED DOWN (total 75% reduction)
+            this.t += 0.0035;
 
             if (this.t < 1.0) {
                 // Slide down with loop
                 this.x = this.originX + Math.sin(this.t * 10 + this.entranceOffset) * 40;
                 this.y = this.originY + this.t * 200;
             } else {
-                // Move to formation - SLOWED DOWN
+                // Move to formation - FURTHER SLOWED DOWN
                 const dx = this.targetX - this.x;
                 const dy = this.targetY - this.y;
-                this.x += dx * 0.03;
-                this.y += dy * 0.03;
+                this.x += dx * 0.015;
+                this.y += dy * 0.015;
 
                 if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
                     this.x = this.targetX;
@@ -174,10 +174,10 @@ export default class Enemy {
             }
         }
         else if (this.state === 'dive') {
-            // Speed scales with level - SLOWED DOWN 52%
-            const speed = 1.2 + (this.game.level * 0.05);
+            // Speed scales with level - FURTHER SLOWED DOWN (total 76% reduction)
+            const speed = 0.6 + (this.game.level * 0.025);
             this.y += speed;
-            this.x += Math.sin(this.y / 25) * 2;
+            this.x += Math.sin(this.y / 25) * 1;
 
             if (this.y > 300) {
                 // Reset to new random position near target for variety
