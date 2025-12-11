@@ -1,27 +1,49 @@
-/* Mobile input fix */
+/* Mobile input fix - Override all blocking styles */
+
+/* Allow touch on game over screen */
+body.game-over {
+    touch-action: auto !important;
+}
+
 #player-name-input {
     position: relative !important;
-    z-index: 10000 !important;
+    z-index: 999999 !important;
     touch-action: manipulation !important;
     -webkit-user-select: text !important;
     user-select: text !important;
-    -webkit-tap-highlight-color: rgba(0, 255, 0, 0.3) !important;
+    -webkit-tap-highlight-color: rgba(0, 255, 0, 0.5) !important;
     pointer-events: auto !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+
+#player-name-input:focus {
+    outline: 3px solid #0f0 !important;
+    background: #111 !important;
 }
 
 #submit-score-btn {
     position: relative !important;
-    z-index: 10000 !important;
+    z-index: 999999 !important;
     touch-action: manipulation !important;
     pointer-events: auto !important;
+    cursor: pointer !important;
 }
 
 #name-input-section {
     position: relative !important;
-    z-index: 9999 !important;
+    z-index: 99999 !important;
     pointer-events: auto !important;
+    touch-action: auto !important;
 }
 
 #game-over-screen {
     pointer-events: auto !important;
+    touch-action: auto !important;
+}
+
+/* Disable canvas touch when input is visible */
+canvas.input-active {
+    pointer-events: none !important;
+    touch-action: none !important;
 }
