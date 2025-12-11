@@ -192,8 +192,8 @@ export default class Game {
         const patterns = ['grid', 'circle', 'v-shape', 'staggered'];
         const pattern = patterns[(this.level - 1) % patterns.length];
 
-        // Level scaling: Each level adds 20% more enemies
-        const levelMultiplier = 1 + (this.level - 1) * 0.2;
+        // Level scaling: Each level adds 30% more enemies (increased from 20%)
+        const levelMultiplier = 1 + (this.level - 1) * 0.3;
 
         if (pattern === 'grid') {
             // Classic Grid - Scales with level (20% per level)

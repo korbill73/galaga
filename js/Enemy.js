@@ -243,6 +243,11 @@ export default class Enemy {
                 this.state = 'entrance';
             }
         }
+
+        // Keep enemies within screen bounds
+        const GAME_WIDTH = 224;
+        if (this.x < 0) this.x = 0;
+        if (this.x > GAME_WIDTH - this.width) this.x = GAME_WIDTH - this.width;
     }
 
     draw() {

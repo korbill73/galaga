@@ -61,8 +61,8 @@ export default class Player {
 
         if (this.shootTimer <= 0) {
             this.shoot();
-            // Fire rate - Very fast now!
-            this.shootTimer = 2.33;
+            // Fire rate - Extremely fast!
+            this.shootTimer = 1.86;
         }
 
         if (this.shootTimer > 0) this.shootTimer--;
