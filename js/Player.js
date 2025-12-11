@@ -68,7 +68,7 @@ export default class Player {
 
     upgradeWeapon(type) {
         if (type === 'shield') {
-            this.shieldTimer = 600; // 10 seconds
+            this.shieldTimer = 300; // 5 seconds (reduced from 10)
             return;
         }
 
