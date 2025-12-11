@@ -111,9 +111,8 @@ export default class Game {
         // Difficulty Multiplier
         const difficulty = 1 + (this.level * 0.1);
 
-        // Pattern Selection
-        const patterns = ['grid', 'circle', 'v-shape', 'staggered'];
-        const pattern = patterns[(this.level - 1) % patterns.length];
+        // Check if this is a BOSS LEVEL (every 10 levels)
+        const isBossLevel = (this.level % 10 === 0);
 
         const startX = 20;
         const startY = 40;
@@ -131,35 +130,73 @@ export default class Game {
             const enemy = new Enemy(this, x, y, type);
             enemy.delay = delayCounter++ * delayStep;
 
-            // Apply Difficulty directly
-            // We can monkey-patch or use a method if Enemy had one. 
-            // Since we can't easily change Enemy.js signature without another tool call, we set props here.
-            // But Enemy.js uses hardcoded 2.5 in update().
-            // Wait, we can edit Enemy.js too. The user asked for "difficulty harder".
-            // I will inject properties that Enemy.js *could* use if I updated it, or just rely on 'dive' state randomness which is hardcoded?
-            // Actually, I should update Enemy.js to read from a 'difficulty' property or similar.
-            // For now, let's just spawn them. Diversifying patterns is the main visual request.
-
             this.enemies.push(enemy);
         };
 
+        // SPECIAL BOSS WAVE every 10 levels
+        if (isBossLevel) {
+            const centerX = GAME_WIDTH / 2;
+            const centerY = 80;
+
+            // Create a KING BOSS formation
+            // Large boss circle with escorts
+            const bossCount = 8;
+            const radius = 50;
+            for (let i = 0; i < bossCount; i++) {
+                const angle = (i / bossCount) * Math.PI * 2;
+                const bx = centerX + Math.cos(angle) * radius;
+                const by = centerY + Math.sin(angle) * radius * 0.7;
+                createEnemy(bx, by, 'boss');
+            }
+
+            // Inner circle of butterflies
+            const butterflyCount = 6;
+            const innerRadius = 30;
+            for (let i = 0; i < butterflyCount; i++) {
+                const angle = (i / butterflyCount) * Math.PI * 2;
+                const bx = centerX + Math.cos(angle) * innerRadius;
+                const by = centerY + Math.sin(angle) * innerRadius * 0.7;
+                createEnemy(bx, by, 'butterfly');
+            }
+
+            // Add extra escorts based on level
+            const extraCount = Math.min(Math.floor(this.level / 10), 4);
+            for (let i = 0; i < extraCount; i++) {
+                createEnemy(centerX - 60 - i * 15, centerY + 30, 'butterfly');
+                createEnemy(centerX + 60 + i * 15, centerY + 30, 'butterfly');
+            }
+
+            return; // Skip normal patterns for boss level
+        }
+
+        // Calculate enemy count based on level (gradual increase)
+        // Start with fewer enemies, increase gradually
+        const baseMultiplier = Math.min(1 + (this.level - 1) * 0.15, 2.5); // Cap at 2.5x
+
+        // Pattern Selection
+        const patterns = ['grid', 'circle', 'v-shape', 'staggered'];
+        const pattern = patterns[(this.level - 1) % patterns.length];
+
         if (pattern === 'grid') {
-            // Classic Grid - Reduced by ~30%
-            // Boss: 4 -> 3
-            for (let i = 0; i < 3; i++) createEnemy(startX + 40 + i * gapX, startY, 'boss');
-            // Butterfly: 8 -> 6
-            for (let i = 0; i < 6; i++) createEnemy(startX + i * gapX + 20, startY + gapY, 'butterfly');
-            // Bee: 2 rows of 10 -> 2 rows of 7
+            // Classic Grid - Progressive scaling
+            // Level 1: 2 boss, 4 butterfly, 2x4 bee
+            // Level 5+: 3 boss, 6 butterfly, 2x7 bee
+            const bossCount = Math.min(2 + Math.floor(this.level / 3), 4);
+            const butterflyCount = Math.min(4 + Math.floor(this.level / 2), 8);
+            const beePerRow = Math.min(4 + Math.floor(this.level / 2), 8);
+
+            for (let i = 0; i < bossCount; i++) createEnemy(startX + 40 + i * gapX, startY, 'boss');
+            for (let i = 0; i < butterflyCount; i++) createEnemy(startX + i * gapX + 20, startY + gapY, 'butterfly');
             for (let row = 0; row < 2; row++) {
-                for (let i = 0; i < 7; i++) createEnemy(startX + 10 + i * gapX, startY + gapY * 2 + row * gapY, 'bee');
+                for (let i = 0; i < beePerRow; i++) createEnemy(startX + 10 + i * gapX, startY + gapY * 2 + row * gapY, 'bee');
             }
         }
         else if (pattern === 'circle') {
             const centerX = GAME_WIDTH / 2;
             const centerY = 100;
             const radius = 60;
-            // Count: 20 -> 14
-            const count = 14 + Math.floor(this.level * 1.5);
+            // Start with 10, gradually increase
+            const count = Math.min(10 + Math.floor(this.level * 1.2), 22);
 
             for (let i = 0; i < count; i++) {
                 const angle = (i / count) * Math.PI * 2;
@@ -171,8 +208,8 @@ export default class Game {
         }
         else if (pattern === 'v-shape') {
             const centerX = GAME_WIDTH / 2;
-            // Rows: 5 -> 4
-            const rows = 4 + Math.min(3, this.level);
+            // Start with 3 rows, increase gradually
+            const rows = Math.min(3 + Math.floor(this.level / 2), 7);
 
             for (let r = 0; r < rows; r++) {
                 // Left wing
@@ -187,9 +224,9 @@ export default class Game {
             }
         }
         else if (pattern === 'staggered') {
-            // Reduced grid
-            const rows = 4; // 6 -> 4
-            const cols = 6; // 8 -> 6
+            // Start smaller, scale up
+            const rows = Math.min(3 + Math.floor(this.level / 3), 5);
+            const cols = Math.min(4 + Math.floor(this.level / 2), 7);
             for (let r = 0; r < rows; r++) {
                 const offset = (r % 2) * 15;
                 for (let c = 0; c < cols; c++) {
