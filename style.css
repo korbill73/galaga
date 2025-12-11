@@ -26,7 +26,7 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    touch-action: none;
+    /* touch-action: none; - REMOVED to allow input fields */
     /* Prevent swipe navigation/scrolling on mobile */
 }
 
