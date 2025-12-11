@@ -26,14 +26,14 @@ export default class SoundManager {
 
         switch (type) {
             case 'shoot':
-                // Pew Pew: Fast frequency sweep
+                // Pew Pew: Fast frequency sweep - Quieter
                 const osc = this.ctx.createOscillator();
                 osc.connect(gain);
                 osc.type = 'square'; // Square wave for 8-bit feel
                 osc.frequency.setValueAtTime(1200, now);
                 osc.frequency.exponentialRampToValueAtTime(400, now + 0.15);
 
-                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.setValueAtTime(0.05, now); // Reduced from 0.1
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
 
                 osc.start(now);
@@ -79,6 +79,27 @@ export default class SoundManager {
 
                 osc1.start(now);
                 osc1.stop(now + 0.4);
+                break;
+
+            case 'enemy_explosion':
+                // Small explosion: Quiet short noise burst
+                if (!this.noiseBuffer) this.noiseBuffer = this.createNoiseBuffer();
+                const enemyNoise = this.ctx.createBufferSource();
+                enemyNoise.buffer = this.noiseBuffer;
+
+                const enemyFilter = this.ctx.createBiquadFilter();
+                enemyFilter.type = 'lowpass';
+                enemyFilter.frequency.setValueAtTime(800, now);
+                enemyFilter.frequency.linearRampToValueAtTime(100, now + 0.1);
+
+                enemyNoise.connect(enemyFilter);
+                enemyFilter.connect(gain);
+
+                gain.gain.setValueAtTime(0.08, now); // Quieter than main explosion
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                enemyNoise.start(now);
+                enemyNoise.stop(now + 0.1);
                 break;
         }
     }
