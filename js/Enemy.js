@@ -22,9 +22,10 @@ export default class Enemy {
         this.targetX = x;
         this.targetY = y;
 
-        // Start offscreen top-center
-        this.originX = 112;
-        this.originY = -50;
+        // Start offscreen from various positions (not just center)
+        // Each enemy starts near its target X position for better distribution
+        this.originX = this.targetX + (Math.random() - 0.5) * 40; // Random offset around target
+        this.originY = -50 - Math.random() * 30; // Varying heights above screen
 
         this.x = this.originX;
         this.y = this.originY;
@@ -179,7 +180,11 @@ export default class Enemy {
             this.x += Math.sin(this.y / 25) * 4;
 
             if (this.y > 300) {
-                this.y = this.originY; // Reset to top
+                // Reset to new random position near target for variety
+                this.originX = this.targetX + (Math.random() - 0.5) * 40;
+                this.originY = -50 - Math.random() * 30;
+                this.x = this.originX;
+                this.y = this.originY;
                 this.t = 0; // Reset entrance param
                 this.state = 'entrance';
             }
