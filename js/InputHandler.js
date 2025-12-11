@@ -3,13 +3,13 @@ export default class InputHandler {
         this.keys = {};
 
         window.addEventListener('keydown', e => {
-            if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'Space' || e.code === 'Enter') {
+            if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyN') {
                 this.keys[e.code] = true;
             }
         });
 
         window.addEventListener('keyup', e => {
-            if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'Space' || e.code === 'Enter') {
+            if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyN') {
                 this.keys[e.code] = false;
             }
         });
@@ -28,10 +28,20 @@ export default class InputHandler {
 
         const touchZone = document.body; // Use whole body
         let startX = 0;
+        let lastTapTime = 0; // For double tap detection
 
         touchZone.addEventListener('touchstart', (e) => {
             // e.preventDefault(); // Might block scrolling, which is good for game
             startX = e.touches[0].clientX;
+
+            // Double tap detection for nuke
+            const currentTime = Date.now();
+            if (currentTime - lastTapTime < 300) { // 300ms for double tap
+                this.keys['KeyN'] = true;
+                setTimeout(() => this.keys['KeyN'] = false, 100);
+            }
+            lastTapTime = currentTime;
+
             // Also trigger start if needed
             if (!this.keys['Space']) {
                 this.keys['Space'] = true;
