@@ -28,6 +28,24 @@
                 <h1 class="red-text">GAME OVER</h1>
                 <p class="blink">RESULTS</p>
                 <div id="results-stats"></div>
+
+                <!-- Name Input for High Score -->
+                <div id="name-input-section" style="display:none; margin-top:20px;">
+                    <p style="color:#fff; font-size:14px;">🏆 NEW HIGH SCORE! 🏆</p>
+                    <input type="text" id="player-name-input" maxlength="10" placeholder="Enter Name"
+                        style="padding:8px; font-size:16px; text-align:center; background:#000; color:#0f0; border:2px solid #0f0; border-radius:4px; width:200px;">
+                    <button id="submit-score-btn"
+                        style="display:block; margin:10px auto; padding:8px 20px; font-size:14px; background:#0f0; color:#000; border:none; cursor:pointer; border-radius:4px;">SUBMIT</button>
+                </div>
+
+                <!-- Leaderboard -->
+                <div id="leaderboard" style="margin-top:20px; max-height:200px; overflow-y:auto;">
+                    <h3 style="color:#ff0; font-size:16px; margin-bottom:10px;">🏆 TOP 10 SCORES 🏆</h3>
+                    <table id="leaderboard-table"
+                        style="width:100%; color:#fff; font-size:12px; border-collapse:collapse;">
+                        <!-- Leaderboard rows will be inserted here -->
+                    </table>
+                </div>
             </div>
 
             <!-- Mobile Controls Removed -->

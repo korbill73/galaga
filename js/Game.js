@@ -3,6 +3,7 @@ import InputHandler from './InputHandler.js';
 import Enemy from './Enemy.js';
 import PowerUp from './PowerUp.js';
 import SoundManager from './SoundManager.js';
+import Leaderboard from './Leaderboard.js';
 import { rectIntersect, GAME_WIDTH, GAME_HEIGHT } from './utils.js';
 
 export default class Game {
@@ -22,6 +23,7 @@ export default class Game {
         this.player = new Player(this);
         this.input = new InputHandler();
         this.soundManager = new SoundManager();
+        this.leaderboard = new Leaderboard();
         this.bullets = [];
         this.enemies = [];
         this.powerUps = [];
@@ -74,6 +76,44 @@ export default class Game {
             this.resetGame();
         } else if (this.state === 'GAMEOVER') {
             gameOverScreen.classList.remove('hidden');
+
+            // Display leaderboard
+            this.leaderboard.displayLeaderboard();
+
+            // Check if this is a high score
+            if (this.leaderboard.isHighScore(this.score)) {
+                // Show name input
+                const nameInputSection = document.getElementById('name-input-section');
+                const nameInput = document.getElementById('player-name-input');
+                const submitBtn = document.getElementById('submit-score-btn');
+
+                if (nameInputSection) nameInputSection.style.display = 'block';
+
+                // Setup submit handler (remove old listeners first)
+                const newSubmitBtn = submitBtn.cloneNode(true);
+                submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+
+                newSubmitBtn.addEventListener('click', () => {
+                    const playerName = nameInput.value.trim() || 'PLAYER';
+                    this.leaderboard.saveScore(playerName, this.score, this.level);
+                    this.leaderboard.displayLeaderboard();
+                    nameInputSection.style.display = 'none';
+                    this.soundManager.play('powerup');
+                });
+
+                // Submit on Enter key
+                nameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') newSubmitBtn.click();
+                });
+
+                // Auto-focus input
+                setTimeout(() => nameInput.focus(), 100);
+            } else {
+                // Hide name input if not high score
+                const nameInputSection = document.getElementById('name-input-section');
+                if (nameInputSection) nameInputSection.style.display = 'none';
+            }
+
             // Check high score
             if (this.score > this.highScore) {
                 this.highScore = this.score;
