@@ -34,6 +34,10 @@ export default class Game {
 
         this.lastTime = 0;
 
+        // Nuclear effects
+        this.nukeFlash = 0; // Flash effect when nuke is launched
+        this.nukeExplosions = []; // Explosion animations
+
         // Starfield
         this.stars = [];
         for (let i = 0; i < 50; i++) {
@@ -295,6 +299,24 @@ export default class Game {
             }
         });
 
+        // Nuclear Flash effect
+        if (this.nukeFlash > 0) this.nukeFlash--;
+
+        // Nuclear Explosions animations
+        this.nukeExplosions.forEach((exp, index) => {
+            if (exp.growing) {
+                exp.radius += 3;
+                if (exp.radius >= exp.maxRadius) {
+                    exp.growing = false;
+                }
+            } else {
+                exp.alpha -= 0.05;
+                if (exp.alpha <= 0) {
+                    this.nukeExplosions.splice(index, 1);
+                }
+            }
+        });
+
         if (this.enemies.length === 0) {
             setTimeout(() => this.spawnWave(), 1000); // Infinite waves
         }
@@ -337,15 +359,15 @@ export default class Game {
                     document.getElementById('score-display').innerText = this.score;
                     this.soundManager.play('explosion');
 
-                    // 20% -> 14% -> 10% -> 7% -> 3.5% chance to drop powerup (Halved again)
-                    if (Math.random() < 0.035) {
+                    // 20% -> 14% -> 10% -> 7% -> 3.5% -> 1.75% chance to drop powerup
+                    if (Math.random() < 0.0175) {
                         // Removed 'bonus' (standard 2000pts)
                         const types = ['spread', 'missile', 'guided', 'shield'];
                         const type = types[Math.floor(Math.random() * types.length)];
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                     }
-                    // Rare Super Bonus (0.25% chance - special 1,000,000 point bonus)
-                    else if (Math.random() < 0.0025) {
+                    // Rare Super Bonus (0.125% chance - special 1,000,000 point bonus)
+                    else if (Math.random() < 0.00125) {
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, 'super_bonus'));
                     }
 
@@ -442,6 +464,38 @@ export default class Game {
             this.bullets.forEach(b => b.draw());
             this.enemies.forEach(e => e.draw());
             this.powerUps.forEach(p => p.draw());
+
+            // Draw nuclear explosions
+            this.nukeExplosions.forEach(exp => {
+                this.ctx.save();
+                // Outer blast wave
+                const gradient = this.ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, exp.radius);
+                gradient.addColorStop(0, `rgba(255, 255, 200, ${exp.alpha * 0.8})`);
+                gradient.addColorStop(0.3, `rgba(255, 150, 0, ${exp.alpha * 0.6})`);
+                gradient.addColorStop(0.6, `rgba(255, 50, 0, ${exp.alpha * 0.4})`);
+                gradient.addColorStop(1, `rgba(100, 0, 0, 0)`);
+
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Inner core
+                this.ctx.fillStyle = `rgba(255, 255, 255, ${exp.alpha})`;
+                this.ctx.beginPath();
+                this.ctx.arc(exp.x, exp.y, exp.radius * 0.3, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+            });
+
+            // Nuclear flash effect (screen-wide)
+            if (this.nukeFlash > 0) {
+                this.ctx.save();
+                const flashAlpha = this.nukeFlash / 60;
+                this.ctx.fillStyle = `rgba(255, 255, 200, ${flashAlpha * 0.5})`;
+                this.ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                this.ctx.restore();
+            }
         }
     }
 }

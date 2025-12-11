@@ -26,6 +26,9 @@ export default class Player {
         // PowerUp Timers (10 seconds = 600 frames at 60fps)
         this.shieldTimer = 0;
         this.weaponTimer = 0;
+
+        // Nuclear Missiles
+        this.nukesLeft = 3; // Total 3 nukes
     }
 
     update(input) {
@@ -58,12 +61,20 @@ export default class Player {
 
         if (this.shootTimer <= 0) {
             this.shoot();
-            // Fire rate
-            // Default fast rate
-            this.shootTimer = 4; // Very fast for all weapons including missile
+            // Fire rate - INCREASED 30% (4 -> 5.2 frames)
+            this.shootTimer = 5.2;
         }
 
         if (this.shootTimer > 0) this.shootTimer--;
+
+        // Nuclear Missile Launch (N key)
+        if (input.isDown('KeyN') && this.nukesLeft > 0 && !this.nukeLaunched) {
+            this.launchNuke();
+            this.nukeLaunched = true;
+        }
+        if (!input.isDown('KeyN')) {
+            this.nukeLaunched = false;
+        }
     }
 
     upgradeWeapon(type) {
@@ -233,5 +244,70 @@ export default class Player {
 
             ctx.restore();
         }
+
+        // Draw Nuclear Missile UI (bottom right)
+        const nukeX = GAME_WIDTH - 60;
+        const nukeY = GAME_HEIGHT - 25;
+
+        ctx.save();
+        ctx.font = 'bold 12px monospace';
+        ctx.fillStyle = '#ff0';
+        ctx.fillText('NUKES:', nukeX - 50, nukeY + 5);
+
+        // Draw nuke icons
+        for (let i = 0; i < this.nukesLeft; i++) {
+            const iconX = nukeX + i * 18;
+            // Nuclear symbol
+            ctx.fillStyle = this.nukesLeft > 0 ? '#f00' : '#444';
+            ctx.beginPath();
+            ctx.arc(iconX, nukeY, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Radiation symbol
+            ctx.fillStyle = this.nukesLeft > 0 ? '#ff0' : '#666';
+            for (let j = 0; j < 3; j++) {
+                const angle = (j / 3) * Math.PI * 2 - Math.PI / 2;
+                ctx.beginPath();
+                ctx.moveTo(iconX, nukeY);
+                ctx.lineTo(iconX + Math.cos(angle) * 5, nukeY + Math.sin(angle) * 5);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
+    launchNuke() {
+        this.nukesLeft--;
+        this.game.soundManager.play('explosion');
+
+        // Create massive explosion effect
+        this.game.nukeFlash = 60; // Flash duration
+
+        // Destroy ALL enemies on screen
+        this.game.enemies.forEach(enemy => {
+            if (!enemy.markedForDeletion && enemy.delay <= 0) {
+                enemy.markedForDeletion = true;
+                this.game.score += 100;
+
+                // Create explosion particles
+                this.createNukeExplosion(enemy.x, enemy.y);
+            }
+        });
+
+        document.getElementById('score-display').innerText = this.game.score;
+    }
+
+    createNukeExplosion(x, y) {
+        // Add explosion visual effect (handled in Game.js)
+        if (!this.game.nukeExplosions) this.game.nukeExplosions = [];
+        this.game.nukeExplosions.push({
+            x: x,
+            y: y,
+            radius: 0,
+            maxRadius: 40,
+            alpha: 1,
+            growing: true
+        });
     }
 }
