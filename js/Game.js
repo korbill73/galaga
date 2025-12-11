@@ -106,8 +106,17 @@ export default class Game {
                     if (e.key === 'Enter') newSubmitBtn.click();
                 });
 
-                // Auto-focus input
-                setTimeout(() => nameInput.focus(), 100);
+                // Auto-focus input - Multiple attempts for mobile
+                setTimeout(() => {
+                    nameInput.focus();
+                    nameInput.click(); // Mobile trigger
+                }, 100);
+                setTimeout(() => {
+                    nameInput.focus();
+                }, 300);
+                setTimeout(() => {
+                    nameInput.focus();
+                }, 500);
             } else {
                 // Hide name input if not high score
                 const nameInputSection = document.getElementById('name-input-section');
