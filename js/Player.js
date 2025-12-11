@@ -247,6 +247,20 @@ export default class Player {
 
         // Draw Nuclear Missile UI (bottom right) - CLICKABLE
         const nukeX = GAME_WIDTH - 70;
+        const nukeY = GAME_HEIGHT - 30;
+        const buttonWidth = 60;
+        const buttonHeight = 25;
+
+        ctx.save();
+
+        // Store button bounds for click detection (in window object)
+        window.nukeButtonBounds = {
+            left: nukeX - 5,
+            right: nukeX + buttonWidth,
+            top: nukeY - buttonHeight / 2,
+            bottom: nukeY + buttonHeight / 2
+        };
+
         // Button background
         if (this.nukesLeft > 0) {
             ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
