@@ -419,7 +419,15 @@ export default class Game {
         }
 
         if (this.state === 'GAMEOVER') {
-            if (this.input.isDown('Enter') || this.input.isDown('Space')) {
+            // Check if name input is visible and focused
+            const nameInputSection = document.getElementById('name-input-section');
+            const nameInput = document.getElementById('player-name-input');
+            const isInputActive = nameInputSection &&
+                nameInputSection.style.display !== 'none' &&
+                document.activeElement === nameInput;
+
+            // Only restart if name input is not active
+            if (!isInputActive && (this.input.isDown('Enter') || this.input.isDown('Space'))) {
                 this.setState('MENU');
             }
             return;
