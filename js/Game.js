@@ -90,6 +90,7 @@ export default class Game {
         this.enemies = [];
         this.powerUps = [];
         this.player = new Player(this);
+        this.waveSpawning = false; // Flag to prevent multiple wave spawns
         document.getElementById('score-display').innerText = this.score;
         this.updateLivesDisplay(); // Custom method needed or just reuse score board? 
         // Let's reuse '1UP' label or add new one? For now, we assume simple logic.
@@ -330,8 +331,12 @@ export default class Game {
             }
         });
 
-        if (this.enemies.length === 0) {
-            setTimeout(() => this.spawnWave(), 1000); // Infinite waves
+        if (this.enemies.length === 0 && !this.waveSpawning) {
+            this.waveSpawning = true;
+            setTimeout(() => {
+                this.spawnWave();
+                this.waveSpawning = false;
+            }, 1000);
         }
 
         this.checkCollisions();
