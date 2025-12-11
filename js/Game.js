@@ -192,12 +192,12 @@ export default class Game {
         const pattern = patterns[(this.level - 1) % patterns.length];
 
         if (pattern === 'grid') {
-            // Classic Grid - MUCH slower progression
+            // Classic Grid - ULTRA slow progression
             // Level 1: 1 boss, 2 butterfly, 1x3 bee (total 6)
-            // Level 10: 2 boss, 4 butterfly, 2x5 bee (total 16)
-            const bossCount = Math.min(1 + Math.floor(this.level / 5), 3);
-            const butterflyCount = Math.min(2 + Math.floor(this.level / 4), 6);
-            const beePerRow = Math.min(3 + Math.floor(this.level / 3), 6);
+            // Level 20: Still around 8-10 total
+            const bossCount = Math.min(1 + Math.floor(this.level / 10), 2);
+            const butterflyCount = Math.min(2 + Math.floor(this.level / 8), 4);
+            const beePerRow = Math.min(3 + Math.floor(this.level / 6), 5);
 
             for (let i = 0; i < bossCount; i++) createEnemy(startX + 40 + i * gapX, startY, 'boss');
             for (let i = 0; i < butterflyCount; i++) createEnemy(startX + i * gapX + 20, startY + gapY, 'butterfly');
@@ -209,8 +209,8 @@ export default class Game {
             const centerX = GAME_WIDTH / 2;
             const centerY = 100;
             const radius = 60;
-            // Start with 6, very slowly increase (Level 1: 6, Level 10: 12)
-            const count = Math.min(6 + Math.floor(this.level * 0.6), 18);
+            // Start with 6, ultra slowly increase
+            const count = Math.min(6 + Math.floor(this.level * 0.3), 12);
 
             for (let i = 0; i < count; i++) {
                 const angle = (i / count) * Math.PI * 2;
@@ -222,8 +222,8 @@ export default class Game {
         }
         else if (pattern === 'v-shape') {
             const centerX = GAME_WIDTH / 2;
-            // Start with 2 rows, increase very slowly (Level 1: 2, Level 10: 4)
-            const rows = Math.min(2 + Math.floor(this.level / 4), 5);
+            // Start with 2 rows, increase ultra slowly
+            const rows = Math.min(2 + Math.floor(this.level / 8), 4);
 
             for (let r = 0; r < rows; r++) {
                 // Left wing
@@ -238,9 +238,9 @@ export default class Game {
             }
         }
         else if (pattern === 'staggered') {
-            // Start smaller (Level 1: 2x3=6, Level 10: 3x5=15)
-            const rows = Math.min(2 + Math.floor(this.level / 5), 4);
-            const cols = Math.min(3 + Math.floor(this.level / 4), 6);
+            // Start smaller, ultra slow increase
+            const rows = Math.min(2 + Math.floor(this.level / 10), 3);
+            const cols = Math.min(3 + Math.floor(this.level / 8), 5);
             for (let r = 0; r < rows; r++) {
                 const offset = (r % 2) * 15;
                 for (let c = 0; c < cols; c++) {

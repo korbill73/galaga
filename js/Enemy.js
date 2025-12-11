@@ -199,9 +199,9 @@ export default class Enemy {
             this.t += 0.00315;
 
             if (this.t < 1.0) {
-                // Slide down with loop - Descent speed reduced by 93.75% total (playable)
+                // Slide down with loop - 30% slower descent
                 this.x = this.originX + Math.sin(this.t * 10 + this.entranceOffset) * 40;
-                this.y = this.originY + this.t * 12.5;
+                this.y = this.originY + this.t * 8.75;
             } else {
                 // Move to formation - SPEED TRIPLED
                 const dx = this.targetX - this.x;
