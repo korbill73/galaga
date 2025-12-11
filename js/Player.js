@@ -61,8 +61,8 @@ export default class Player {
 
         if (this.shootTimer <= 0) {
             this.shoot();
-            // Fire rate - Slower for more strategic play
-            this.shootTimer = 3.91;
+            // Fire rate - Slower for difficulty
+            this.shootTimer = 5.08;
         }
 
         if (this.shootTimer > 0) this.shootTimer--;

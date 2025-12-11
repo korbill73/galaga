@@ -124,7 +124,7 @@ export default class Game {
 
     resetGame() {
         this.score = 0;
-        this.lives = 10; // Requested 10 lives
+        this.lives = 3; // Changed from 10 to 3
         this.level = 0; // Reset level, spawnWave will inc to 1
         this.bullets = [];
         this.enemies = [];
@@ -547,10 +547,10 @@ export default class Game {
 
                     // Item drop only when enemy is actually killed
                     if (enemy.markedForDeletion) {
-                        // Item drop rate doubled for better gameplay
-                        if (Math.random() < 0.035) {
-                            // Add nuke to drop types for excitement!
-                            const types = ['spread', 'missile', 'guided', 'shield', 'nuke'];
+                        // Item drop rate increased by 30% (3.5% → 4.55%)
+                        if (Math.random() < 0.0455) {
+                            // Add life and nuke to drop types!
+                            const types = ['spread', 'missile', 'guided', 'shield', 'nuke', 'life'];
                             const type = types[Math.floor(Math.random() * types.length)];
                             this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                         }
@@ -588,6 +588,11 @@ export default class Game {
                 else if (powerUp.type === 'nuke') {
                     this.player.nukesLeft = Math.min(this.player.nukesLeft + 1, 5); // Max 5 nukes
                     this.score += 1000;
+                }
+                else if (powerUp.type === 'life') {
+                    this.lives++; // Add one life!
+                    this.updateLivesDisplay();
+                    this.score += 5000;
                 }
                 else {
                     this.player.upgradeWeapon(powerUp.type);

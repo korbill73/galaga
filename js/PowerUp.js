@@ -22,6 +22,8 @@ export default class PowerUp {
             this.image.src = 'assets/item_shield.png';
         } else if (this.type === 'nuke') {
             this.image.src = 'assets/item_bonus.png'; // Use bonus image for nuke
+        } else if (this.type === 'life') {
+            this.image.src = 'assets/item_shield.png'; // Use shield image for life (heart-like)
         } else {
             this.image.src = 'assets/item_spread.png'; // Fallback
         }
