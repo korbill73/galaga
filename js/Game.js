@@ -60,7 +60,7 @@ export default class Game {
         requestAnimationFrame(this.gameLoop.bind(this));
     }
 
-    setState(newState) {
+    async setState(newState) {
         this.state = newState;
         const startScreen = document.getElementById('start-screen');
         const gameOverScreen = document.getElementById('game-over-screen');
@@ -78,7 +78,7 @@ export default class Game {
             gameOverScreen.classList.remove('hidden');
 
             // Display leaderboard
-            this.leaderboard.displayLeaderboard();
+            await this.leaderboard.displayLeaderboard();
 
             // Check if this is a high score
             if (this.leaderboard.isHighScore(this.score)) {
