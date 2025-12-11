@@ -192,12 +192,15 @@ export default class Game {
         const patterns = ['grid', 'circle', 'v-shape', 'staggered'];
         const pattern = patterns[(this.level - 1) % patterns.length];
 
+        // Level scaling: Each level adds 20% more enemies
+        const levelMultiplier = 1 + (this.level - 1) * 0.2;
+
         if (pattern === 'grid') {
-            // Classic Grid - Start with 100 enemies for excitement!
-            // Level 1: START BIG! ~100 enemies
-            const bossCount = Math.min(10 + Math.floor(this.level / 10), 15);
-            const butterflyCount = Math.min(15 + Math.floor(this.level / 8), 20);
-            const beePerRow = Math.min(25 + Math.floor(this.level / 6), 30);
+            // Classic Grid - Scales with level (20% per level)
+            // Level 1: ~100, Level 2: ~120, Level 3: ~144, etc.
+            const bossCount = Math.floor((10 + Math.floor(this.level / 10)) * levelMultiplier);
+            const butterflyCount = Math.floor((15 + Math.floor(this.level / 8)) * levelMultiplier);
+            const beePerRow = Math.floor((25 + Math.floor(this.level / 6)) * levelMultiplier);
 
             for (let i = 0; i < bossCount; i++) createEnemy(startX + 40 + i * gapX, startY, 'boss');
             for (let i = 0; i < butterflyCount; i++) createEnemy(startX + i * gapX + 20, startY + gapY, 'butterfly');
@@ -209,8 +212,8 @@ export default class Game {
             const centerX = GAME_WIDTH / 2;
             const centerY = 100;
             const radius = 60;
-            // Start with many enemies! ~30-40
-            const count = Math.min(30 + Math.floor(this.level * 1.5), 50);
+            // Scales with level (20% per level)
+            const count = Math.floor((30 + Math.floor(this.level * 1.5)) * levelMultiplier);
 
             for (let i = 0; i < count; i++) {
                 const angle = (i / count) * Math.PI * 2;
@@ -222,8 +225,8 @@ export default class Game {
         }
         else if (pattern === 'v-shape') {
             const centerX = GAME_WIDTH / 2;
-            // Start with many rows! ~15-20 enemies
-            const rows = Math.min(10 + Math.floor(this.level / 4), 15);
+            // Scales with level (20% per level)
+            const rows = Math.floor((10 + Math.floor(this.level / 4)) * levelMultiplier);
 
             for (let r = 0; r < rows; r++) {
                 // Left wing
@@ -238,9 +241,9 @@ export default class Game {
             }
         }
         else if (pattern === 'staggered') {
-            // Start big! ~40-50 enemies
-            const rows = Math.min(8 + Math.floor(this.level / 5), 12);
-            const cols = Math.min(8 + Math.floor(this.level / 4), 12);
+            // Scales with level (20% per level)
+            const rows = Math.floor((8 + Math.floor(this.level / 5)) * levelMultiplier);
+            const cols = Math.floor((8 + Math.floor(this.level / 4)) * levelMultiplier);
             for (let r = 0; r < rows; r++) {
                 const offset = (r % 2) * 15;
                 for (let c = 0; c < cols; c++) {
