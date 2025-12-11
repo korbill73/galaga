@@ -375,11 +375,15 @@ export default class Game {
                             enemy.markedForDeletion = true;
                             this.score += 500; // Bonus for killing king
                             this.soundManager.play('explosion');
+                            // Create explosion particles
+                            this.createEnemyExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
                         }
                     } else {
                         enemy.markedForDeletion = true;
                         this.score += 100;
                         this.soundManager.play('explosion');
+                        // Create small explosion particles
+                        this.createEnemyExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
                     }
 
                     // Piercing Logic
@@ -397,8 +401,8 @@ export default class Game {
                     if (enemy.markedForDeletion) {
                         // Item drop rate doubled for better gameplay
                         if (Math.random() < 0.035) {
-                            // Removed 'bonus' (standard 2000pts)
-                            const types = ['spread', 'missile', 'guided', 'shield'];
+                            // Add nuke to drop types for excitement!
+                            const types = ['spread', 'missile', 'guided', 'shield', 'nuke'];
                             const type = types[Math.floor(Math.random() * types.length)];
                             this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                         }
@@ -432,6 +436,10 @@ export default class Game {
                 }
                 else if (powerUp.type === 'super_bonus') {
                     this.score += 1000000; // 1 Million Points
+                }
+                else if (powerUp.type === 'nuke') {
+                    this.player.nukesLeft = Math.min(this.player.nukesLeft + 1, 5); // Max 5 nukes
+                    this.score += 1000;
                 }
                 else {
                     this.player.upgradeWeapon(powerUp.type);
@@ -569,6 +577,23 @@ export default class Game {
 
                 this.ctx.restore();
             }
+        }
+    }
+
+    createEnemyExplosion(x, y) {
+        // Create small explosion particles when enemy dies
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const speed = 2 + Math.random() * 2;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 30,
+                maxLife: 30,
+                color: ['#ff0', '#f80', '#f00'][Math.floor(Math.random() * 3)]
+            });
         }
     }
 }

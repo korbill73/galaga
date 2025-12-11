@@ -20,6 +20,8 @@ export default class PowerUp {
             this.image.src = 'assets/item_bonus.png';
         } else if (this.type === 'shield') {
             this.image.src = 'assets/item_shield.png';
+        } else if (this.type === 'nuke') {
+            this.image.src = 'assets/item_bonus.png'; // Use bonus image for nuke
         } else {
             this.image.src = 'assets/item_spread.png'; // Fallback
         }
