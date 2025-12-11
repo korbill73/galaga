@@ -38,6 +38,9 @@ export default class Game {
         this.nukeFlash = 0; // Flash effect when nuke is launched
         this.nukeExplosions = []; // Explosion animations
 
+        // Boss warning
+        this.bossWarning = 0; // Warning message when boss appears
+
         // Starfield
         this.stars = [];
         for (let i = 0; i < 50; i++) {
@@ -139,10 +142,14 @@ export default class Game {
 
         // SPECIAL BOSS WAVE every 10 levels
         if (isBossLevel) {
+            // Display BOSS WARNING message
+            this.bossWarning = 180; // Display for 3 seconds
+            this.soundManager.play('powerup'); // Warning sound
+
             const centerX = GAME_WIDTH / 2;
             const centerY = 80;
 
-            // Create a KING BOSS formation
+            // Create a KING BOSS formation - "적의 대왕"
             // Large boss circle with escorts
             const bossCount = 8;
             const radius = 50;
@@ -301,6 +308,9 @@ export default class Game {
 
         // Nuclear Flash effect
         if (this.nukeFlash > 0) this.nukeFlash--;
+
+        // Boss Warning
+        if (this.bossWarning > 0) this.bossWarning--;
 
         // Nuclear Explosions animations
         this.nukeExplosions.forEach((exp, index) => {
@@ -494,6 +504,42 @@ export default class Game {
                 const flashAlpha = this.nukeFlash / 60;
                 this.ctx.fillStyle = `rgba(255, 255, 200, ${flashAlpha * 0.5})`;
                 this.ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                this.ctx.restore();
+            }
+
+            // Boss Warning Message - "적의 대왕 출현!"
+            if (this.bossWarning > 0) {
+                this.ctx.save();
+                const warningAlpha = Math.min(this.bossWarning / 60, 1);
+                const pulse = Math.sin(Date.now() / 100) * 0.3 + 0.7;
+
+                // Background flash
+                this.ctx.fillStyle = `rgba(255, 0, 0, ${warningAlpha * 0.3 * pulse})`;
+                this.ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+                // Warning text
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+
+                // Shadow effect
+                this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                this.ctx.shadowBlur = 10;
+                this.ctx.shadowOffsetX = 3;
+                this.ctx.shadowOffsetY = 3;
+
+                // Main text - "적의 대왕!"
+                this.ctx.font = 'bold 32px Arial';
+                this.ctx.fillStyle = `rgba(255, 255, 0, ${warningAlpha})`;
+                this.ctx.strokeStyle = `rgba(255, 0, 0, ${warningAlpha})`;
+                this.ctx.lineWidth = 3;
+                this.ctx.strokeText('적의 대왕!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20);
+                this.ctx.fillText('적의 대왕!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20);
+
+                // Sub text - "WARNING!"
+                this.ctx.font = 'bold 20px Arial';
+                this.ctx.fillStyle = `rgba(255, 100, 100, ${warningAlpha * pulse})`;
+                this.ctx.fillText('BOSS INCOMING!', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 15);
+
                 this.ctx.restore();
             }
         }
