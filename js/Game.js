@@ -150,6 +150,9 @@ export default class Game {
             const centerY = 80;
 
             // Create a KING BOSS formation - "적의 대왕"
+            // CENTER: The KING BOSS!
+            createEnemy(centerX, centerY, 'king');
+
             // Large boss circle with escorts
             const bossCount = 8;
             const radius = 50;
@@ -354,7 +357,22 @@ export default class Game {
                 const enemyRect = { left: enemy.x, right: enemy.x + enemy.width, top: enemy.y, bottom: enemy.y + enemy.height };
 
                 if (rectIntersect(bulletRect, enemyRect)) {
-                    enemy.markedForDeletion = true;
+                    // HP System for king boss
+                    if (enemy.type === 'king') {
+                        enemy.hp--;
+                        this.score += 50; // Partial score for hitting king
+                        this.soundManager.play('shoot'); // Hit sound
+
+                        if (enemy.hp <= 0) {
+                            enemy.markedForDeletion = true;
+                            this.score += 500; // Bonus for killing king
+                            this.soundManager.play('explosion');
+                        }
+                    } else {
+                        enemy.markedForDeletion = true;
+                        this.score += 100;
+                        this.soundManager.play('explosion');
+                    }
 
                     // Piercing Logic
                     if (bullet.pierce) {
@@ -365,20 +383,21 @@ export default class Game {
                         bullet.markedForDeletion = true;
                     }
 
-                    this.score += 100;
                     document.getElementById('score-display').innerText = this.score;
-                    this.soundManager.play('explosion');
 
-                    // Item drop rate doubled for better gameplay
-                    if (Math.random() < 0.035) {
-                        // Removed 'bonus' (standard 2000pts)
-                        const types = ['spread', 'missile', 'guided', 'shield'];
-                        const type = types[Math.floor(Math.random() * types.length)];
-                        this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
-                    }
-                    // Rare Super Bonus (0.25% chance - special 1,000,000 point bonus)
-                    else if (Math.random() < 0.0025) {
-                        this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, 'super_bonus'));
+                    // Item drop only when enemy is actually killed
+                    if (enemy.markedForDeletion) {
+                        // Item drop rate doubled for better gameplay
+                        if (Math.random() < 0.035) {
+                            // Removed 'bonus' (standard 2000pts)
+                            const types = ['spread', 'missile', 'guided', 'shield'];
+                            const type = types[Math.floor(Math.random() * types.length)];
+                            this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
+                        }
+                        // Rare Super Bonus (0.25% chance - special 1,000,000 point bonus)
+                        else if (Math.random() < 0.0025) {
+                            this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, 'super_bonus'));
+                        }
                     }
 
                     // Don't break if piercing, continue to check other enemies? 

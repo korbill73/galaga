@@ -6,9 +6,23 @@ export default class Enemy {
         this.game = game;
         this.x = x;
         this.y = y;
-        this.width = 16;
-        this.height = 16;
-        this.type = type; // 'bee', 'butterfly', 'boss'
+
+        // King boss is 3x larger
+        if (type === 'king') {
+            this.width = 48;
+            this.height = 48;
+            this.hp = 10; // Takes 10 hits to kill
+            this.maxHp = 10;
+            this.shootTimer = 0;
+            this.shootCooldown = 120; // Shoots every 2 seconds
+        } else {
+            this.width = 16;
+            this.height = 16;
+            this.hp = 1;
+            this.maxHp = 1;
+        }
+
+        this.type = type; // 'bee', 'butterfly', 'boss', 'king'
         this.markedForDeletion = false;
 
         // Animation state
@@ -92,6 +106,25 @@ export default class Enemy {
             [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
         ];
 
+        // King Boss (Gold/Red/Purple) - 3x larger with crown
+        const kingSprite = [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+            [0, 0, 1, 1, 2, 1, 2, 1, 2, 1, 2, 1, 1, 0, 0],
+            [0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0],
+            [1, 1, 2, 2, 3, 3, 2, 2, 2, 3, 3, 2, 2, 1, 1],
+            [1, 2, 2, 3, 3, 3, 3, 2, 3, 3, 3, 3, 2, 2, 1],
+            [1, 2, 3, 3, 4, 4, 3, 3, 3, 4, 4, 3, 3, 2, 1],
+            [1, 2, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 3, 2, 1],
+            [1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 2, 1],
+            [1, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 3, 2, 2, 1],
+            [0, 1, 2, 2, 3, 3, 4, 4, 4, 3, 3, 2, 2, 1, 0],
+            [0, 0, 1, 2, 2, 3, 3, 3, 3, 3, 2, 2, 1, 0, 0],
+            [0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0]
+        ];
+
         let data = [];
         let palette = {};
 
@@ -104,21 +137,25 @@ export default class Enemy {
         } else if (type === 'boss') {
             data = bossSprite;
             palette = { 1: '#00f', 2: '#d00', 3: '#2d2' };
+        } else if (type === 'king') {
+            data = kingSprite;
+            palette = { 1: '#ff0', 2: '#f80', 3: '#f00', 4: '#d0d' }; // Gold, Orange, Red, Purple
         }
 
         // Create offscreen canvas
         const c = document.createElement('canvas');
-        c.width = 16;
-        c.height = 16;
+        c.width = type === 'king' ? 48 : 16;
+        c.height = type === 'king' ? 48 : 16;
         const ctx = c.getContext('2d');
 
-        // Draw pixel data to canvas
+        // Draw pixel data to canvas (king uses 3x pixels)
+        const pixelSize = type === 'king' ? 3 : 1;
         for (let row = 0; row < data.length; row++) {
             for (let col = 0; col < data[row].length; col++) {
                 const colorCode = data[row][col];
                 if (colorCode !== 0) {
                     ctx.fillStyle = palette[colorCode];
-                    ctx.fillRect(col, row, 1, 1);
+                    ctx.fillRect(col * pixelSize, row * pixelSize, pixelSize, pixelSize);
                 }
             }
         }
@@ -138,6 +175,23 @@ export default class Enemy {
         if (this.animationTimer > 30) {
             this.animationTimer = 0;
             this.frame = this.frame === 0 ? 1 : 0;
+        }
+
+        // King boss shoots bullets
+        if (this.type === 'king' && this.state === 'formation') {
+            this.shootTimer++;
+            if (this.shootTimer >= this.shootCooldown) {
+                this.shootTimer = 0;
+                // Create enemy bullet (handled by Game.js)
+                const bulletX = this.x + this.width / 2;
+                const bulletY = this.y + this.height;
+                // Import Bullet dynamically
+                import('./Bullet.js').then(module => {
+                    const Bullet = module.default;
+                    this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, true, 'enemy'));
+                });
+                this.game.soundManager.play('shoot');
+            }
         }
 
         if (this.state === 'entrance') {
