@@ -133,8 +133,8 @@ export default class Game {
 
     resetGame() {
         this.score = 0;
-        this.lives = 3; // Changed from 10 to 3
-        this.level = 0; // Reset level, spawnWave will inc to 1
+        this.lives = 1; // EXTREME MODE - Only 1 life!
+        this.level = 9; // Start at level 10 (spawnWave will increment to 10)
         this.bullets = [];
         this.enemies = [];
         this.powerUps = [];
