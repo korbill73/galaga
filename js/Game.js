@@ -357,7 +357,8 @@ export default class Game {
 
             for (let j = 0; j < this.enemies.length; j++) {
                 const enemy = this.enemies[j];
-                if (enemy.markedForDeletion || enemy.delay > 0) continue; // Don't hit invisible enemies
+                // Don't hit enemies that are invisible (delay) or off-screen (y < 0)
+                if (enemy.markedForDeletion || enemy.delay > 0 || enemy.y < 0) continue;
 
                 const enemyRect = { left: enemy.x, right: enemy.x + enemy.width, top: enemy.y, bottom: enemy.y + enemy.height };
 
