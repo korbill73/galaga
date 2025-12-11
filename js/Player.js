@@ -245,35 +245,46 @@ export default class Player {
             ctx.restore();
         }
 
-        // Draw Nuclear Missile UI (bottom right)
-        const nukeX = GAME_WIDTH - 60;
-        const nukeY = GAME_HEIGHT - 25;
-
-        ctx.save();
-        ctx.font = 'bold 12px monospace';
-        ctx.fillStyle = '#ff0';
-        ctx.fillText('NUKES:', nukeX - 50, nukeY + 5);
-
-        // Draw nuke icons
-        for (let i = 0; i < this.nukesLeft; i++) {
-            const iconX = nukeX + i * 18;
-            // Nuclear symbol
-            ctx.fillStyle = this.nukesLeft > 0 ? '#f00' : '#444';
-            ctx.beginPath();
-            ctx.arc(iconX, nukeY, 6, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Radiation symbol
-            ctx.fillStyle = this.nukesLeft > 0 ? '#ff0' : '#666';
-            for (let j = 0; j < 3; j++) {
-                const angle = (j / 3) * Math.PI * 2 - Math.PI / 2;
-                ctx.beginPath();
-                ctx.moveTo(iconX, nukeY);
-                ctx.lineTo(iconX + Math.cos(angle) * 5, nukeY + Math.sin(angle) * 5);
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
+        // Draw Nuclear Missile UI (bottom right) - CLICKABLE
+        const nukeX = GAME_WIDTH - 70;
+        // Button background
+        if (this.nukesLeft > 0) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.strokeStyle = '#ff0';
+            ctx.lineWidth = 2;
+        } else {
+            ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 1;
         }
+        ctx.fillRect(nukeX - 5, nukeY - buttonHeight / 2, buttonWidth, buttonHeight);
+        ctx.strokeRect(nukeX - 5, nukeY - buttonHeight / 2, buttonWidth, buttonHeight);
+
+        // Text
+        ctx.font = 'bold 10px monospace';
+        ctx.fillStyle = this.nukesLeft > 0 ? '#ff0' : '#888';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('NUKE', nukeX, nukeY);
+
+        // Count
+        ctx.font = 'bold 14px monospace';
+        ctx.fillStyle = this.nukesLeft > 0 ? '#fff' : '#666';
+        ctx.textAlign = 'right';
+        ctx.fillText(`×${this.nukesLeft}`, nukeX + 50, nukeY);
+
+        // Nuclear icon
+        if (this.nukesLeft > 0) {
+            const iconX = nukeX + 25;
+            const iconY = nukeY;
+            const pulse = Math.sin(Date.now() / 200) * 0.2 + 0.8;
+
+            ctx.fillStyle = `rgba(255, 50, 0, ${pulse})`;
+            ctx.beginPath();
+            ctx.arc(iconX, iconY, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         ctx.restore();
     }
 

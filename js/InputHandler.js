@@ -22,27 +22,42 @@ export default class InputHandler {
     }
 
     attachTouchControls() {
-        // Remove old buttons from DOM if possible or just ignore them. 
-        // User asked to move by finger movement, so buttons are less useful.
-        // We will make the whole screen a touch area for movement.
-
-        const touchZone = document.body; // Use whole body
+        const touchZone = document.body;
         let startX = 0;
-        let lastTapTime = 0; // For double tap detection
+        let lastTapTime = 0;
 
         touchZone.addEventListener('touchstart', (e) => {
-            // e.preventDefault(); // Might block scrolling, which is good for game
-            startX = e.touches[0].clientX;
+            const touch = e.touches[0];
 
-            // Double tap detection for nuke
+            // Check nuke button click
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas && window.nukeButtonBounds) {
+                const canvasRect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / canvasRect.width;
+                const scaleY = canvas.height / canvasRect.height;
+                const gameX = (touch.clientX - canvasRect.left) * scaleX;
+                const gameY = (touch.clientY - canvasRect.top) * scaleY;
+
+                const bounds = window.nukeButtonBounds;
+                if (gameX >= bounds.left && gameX <= bounds.right &&
+                    gameY >= bounds.top && gameY <= bounds.bottom) {
+                    this.keys['KeyN'] = true;
+                    setTimeout(() => this.keys['KeyN'] = false, 100);
+                    return;
+                }
+            }
+
+            startX = touch.clientX;
+
+            // Double tap for nuke (backup)
             const currentTime = Date.now();
-            if (currentTime - lastTapTime < 300) { // 300ms for double tap
+            if (currentTime - lastTapTime < 300) {
                 this.keys['KeyN'] = true;
                 setTimeout(() => this.keys['KeyN'] = false, 100);
             }
             lastTapTime = currentTime;
 
-            // Also trigger start if needed
+            // Trigger start
             if (!this.keys['Space']) {
                 this.keys['Space'] = true;
                 setTimeout(() => this.keys['Space'] = false, 200);
@@ -50,24 +65,18 @@ export default class InputHandler {
         }, { passive: false });
 
         touchZone.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // Prevent scrolling
+            e.preventDefault();
             const currentX = e.touches[0].clientX;
             const diff = currentX - startX;
 
-            // Sensitivity threshold
             if (diff > 5) {
                 this.keys['ArrowRight'] = true;
                 this.keys['ArrowLeft'] = false;
-                startX = currentX; // Reset to keep moving if dragging continues
+                startX = currentX;
             } else if (diff < -5) {
                 this.keys['ArrowLeft'] = true;
                 this.keys['ArrowRight'] = false;
                 startX = currentX;
-            } else {
-                // Stop if small movement?
-                // Actually better to just hold the key until touch ends or direction changes.
-                // But Player.js moves constantly if key is true.
-                // So we just update direction.
             }
         }, { passive: false });
 
@@ -77,7 +86,7 @@ export default class InputHandler {
             this.keys['ArrowRight'] = false;
         });
 
-        // Mouse Fallback for testing on PC without keys
+        // Mouse fallback
         let isDragging = false;
         touchZone.addEventListener('mousedown', (e) => {
             startX = e.clientX;
@@ -87,6 +96,7 @@ export default class InputHandler {
                 setTimeout(() => this.keys['Space'] = false, 200);
             }
         });
+
         touchZone.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             const currentX = e.clientX;
@@ -101,6 +111,7 @@ export default class InputHandler {
                 startX = currentX;
             }
         });
+
         touchZone.addEventListener('mouseup', () => {
             isDragging = false;
             this.keys['ArrowLeft'] = false;
