@@ -300,16 +300,15 @@ export default class Game {
                     document.getElementById('score-display').innerText = this.score;
                     this.soundManager.play('explosion');
 
-                    // 20% -> 14% -> 10% chance to drop powerup (Reduced as requested)
-                    if (Math.random() < 0.10) {
+                    // 20% -> 14% -> 10% -> 7% chance to drop powerup (Further reduced for better balance)
+                    if (Math.random() < 0.07) {
                         // Removed 'bonus' (standard 2000pts)
                         const types = ['spread', 'missile', 'guided', 'shield'];
                         const type = types[Math.floor(Math.random() * types.length)];
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                     }
-                    // Rare Super Bonus (1% chance independent of powerups or part of it? Let's make it independent or rare replacement)
-                    // Let's make it a separate small chance
-                    else if (Math.random() < 0.01) {
+                    // Rare Super Bonus (0.5% chance - special 1,000,000 point bonus)
+                    else if (Math.random() < 0.005) {
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, 'super_bonus'));
                     }
 

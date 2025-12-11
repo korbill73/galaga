@@ -141,29 +141,95 @@ export default class Player {
             ctx.fillRect(this.x + 16, this.y, 4, 4);
         }
 
-        // Draw Shield
+        // Draw Shield - Fantastic Multi-layer Gradient Effect
         if (this.shieldTimer > 0) {
             ctx.save();
-            // Fantastic Gradient Shield
+
             const centerX = this.x + this.width / 2;
             const centerY = this.y + this.height / 2;
             const radius = this.width / 1.5;
+            const time = Date.now() / 1000;
 
-            // Create gradient
-            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.5, centerX, centerY, radius);
-            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.0)');
-            gradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.2)');
-            gradient.addColorStop(1, `rgba(0, 200, 255, ${0.6 + Math.sin(Date.now() / 100) * 0.2})`);
+            // Layer 1: Outer pulsing glow
+            const outerPulse = Math.sin(time * 3) * 0.3 + 0.7;
+            const outerGradient = ctx.createRadialGradient(
+                centerX, centerY, radius * 0.7,
+                centerX, centerY, radius * 1.3
+            );
+            outerGradient.addColorStop(0, `rgba(100, 200, 255, ${0.15 * outerPulse})`);
+            outerGradient.addColorStop(0.5, `rgba(0, 150, 255, ${0.3 * outerPulse})`);
+            outerGradient.addColorStop(1, 'rgba(0, 100, 200, 0.0)');
 
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = outerGradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 1.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Layer 2: Main shield with rainbow gradient
+            const hue = (time * 50) % 360;
+            const mainGradient = ctx.createRadialGradient(
+                centerX, centerY - radius * 0.3, radius * 0.2,
+                centerX, centerY, radius
+            );
+            mainGradient.addColorStop(0, `hsla(${hue}, 100%, 80%, 0.1)`);
+            mainGradient.addColorStop(0.4, `hsla(${hue + 60}, 100%, 60%, 0.3)`);
+            mainGradient.addColorStop(0.7, `hsla(${hue + 120}, 100%, 50%, 0.4)`);
+            mainGradient.addColorStop(1, `hsla(${hue + 180}, 100%, 40%, ${0.6 + Math.sin(time * 2) * 0.2})`);
+
+            ctx.fillStyle = mainGradient;
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Outer glow ring
-            ctx.strokeStyle = `rgba(200, 255, 255, ${0.8 + Math.sin(Date.now() / 50) * 0.2})`;
-            ctx.lineWidth = 2;
-            ctx.stroke();
+            // Layer 3: Inner bright core
+            const coreGradient = ctx.createRadialGradient(
+                centerX, centerY - radius * 0.2, 0,
+                centerX, centerY, radius * 0.5
+            );
+            coreGradient.addColorStop(0, `rgba(255, 255, 255, ${0.5 + Math.sin(time * 4) * 0.3})`);
+            coreGradient.addColorStop(0.5, `rgba(150, 220, 255, ${0.3 + Math.sin(time * 3) * 0.2})`);
+            coreGradient.addColorStop(1, 'rgba(0, 200, 255, 0.0)');
+
+            ctx.fillStyle = coreGradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Layer 4: Multiple rotating rings
+            for (let i = 0; i < 3; i++) {
+                const ringOffset = (time * (i + 1) * 0.5) % (Math.PI * 2);
+                const ringRadius = radius * (0.6 + i * 0.15);
+                const ringAlpha = 0.5 + Math.sin(time * 2 + i) * 0.3;
+
+                ctx.strokeStyle = `hsla(${(hue + i * 120) % 360}, 100%, 70%, ${ringAlpha})`;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 10]);
+                ctx.lineDashOffset = -ringOffset * 20;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Layer 5: Sparkle points
+            const sparkleCount = 8;
+            for (let i = 0; i < sparkleCount; i++) {
+                const angle = (i / sparkleCount) * Math.PI * 2 + time * 2;
+                const sparkleRadius = radius * 0.9;
+                const sx = centerX + Math.cos(angle) * sparkleRadius;
+                const sy = centerY + Math.sin(angle) * sparkleRadius;
+                const sparkleSize = 2 + Math.sin(time * 5 + i) * 1;
+
+                const sparkleGradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, sparkleSize * 2);
+                sparkleGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                sparkleGradient.addColorStop(0.5, `hsla(${(hue + i * 45) % 360}, 100%, 70%, 0.6)`);
+                sparkleGradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+                ctx.fillStyle = sparkleGradient;
+                ctx.beginPath();
+                ctx.arc(sx, sy, sparkleSize * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             ctx.restore();
         }
