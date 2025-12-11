@@ -188,8 +188,8 @@ export default class Game {
         // Start with fewer enemies, increase gradually
         const baseMultiplier = Math.min(1 + (this.level - 1) * 0.15, 2.5); // Cap at 2.5x
 
-        // Pattern Selection
-        const patterns = ['grid', 'circle', 'v-shape', 'staggered'];
+        // Pattern Selection - Many varied patterns!
+        const patterns = ['grid', 'circle', 'v-shape', 'staggered', 'star', 'triangle', 'diamond', 'house', 'spaceship', 'letter_a'];
         const pattern = patterns[(this.level - 1) % patterns.length];
 
         // Level scaling: Each level adds 30% more enemies (increased from 20%)
@@ -249,6 +249,106 @@ export default class Game {
                 for (let c = 0; c < cols; c++) {
                     createEnemy(30 + c * 25 + offset, 40 + r * 20, r === 0 ? 'boss' : 'bee');
                 }
+            }
+        }
+        else if (pattern === 'star') {
+            // Star pattern - 별 모양
+            const centerX = GAME_WIDTH / 2;
+            const centerY = 80;
+            const points = 10;
+            const outerRadius = 50;
+            const innerRadius = 25;
+
+            for (let i = 0; i < points; i++) {
+                const angle = (i / points) * Math.PI * 2 - Math.PI / 2;
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius * 0.7;
+                createEnemy(x, y, i % 3 === 0 ? 'boss' : 'butterfly');
+            }
+        }
+        else if (pattern === 'triangle') {
+            // Triangle pattern - 삼각형
+            const centerX = GAME_WIDTH / 2;
+            const rows = Math.floor(8 * levelMultiplier);
+
+            for (let r = 0; r < rows; r++) {
+                const count = r + 1;
+                for (let i = 0; i < count; i++) {
+                    const x = centerX - (count - 1) * 10 + i * 20;
+                    const y = 50 + r * 18;
+                    createEnemy(x, y, r === 0 ? 'boss' : 'bee');
+                }
+            }
+        }
+        else if (pattern === 'diamond') {
+            // Diamond pattern - 다이아몬드/사각형
+            const centerX = GAME_WIDTH / 2;
+            const centerY = 100;
+            const size = 40;
+
+            // Top
+            for (let i = 0; i < 5; i++) createEnemy(centerX - 20 + i * 10, centerY - size, 'boss');
+            // Sides
+            for (let i = 0; i < 3; i++) {
+                createEnemy(centerX - size + i * 10, centerY - 20 + i * 15, 'butterfly');
+                createEnemy(centerX + size - i * 10, centerY - 20 + i * 15, 'butterfly');
+            }
+            // Bottom
+            for (let i = 0; i < 5; i++) createEnemy(centerX - 20 + i * 10, centerY + size, 'bee');
+        }
+        else if (pattern === 'house') {
+            // House pattern - 집 모양
+            const centerX = GAME_WIDTH / 2;
+            const baseY = 120;
+
+            //지붕 (삼각형)
+            for (let r = 0; r < 3; r++) {
+                const count = 3 - r;
+                for (let i = 0; i < count; i++) {
+                    createEnemy(centerX - count * 8 + i * 16, baseY - 40 + r * 12, 'boss');
+                }
+            }
+            // 벽 (사각형)
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 5; c++) {
+                    createEnemy(centerX - 40 + c * 20, baseY + r * 18, 'bee');
+                }
+            }
+        }
+        else if (pattern === 'spaceship') {
+            // Spaceship pattern - 우주선 모양
+            const centerX = GAME_WIDTH / 2;
+            const baseY = 80;
+
+            // Nose
+            createEnemy(centerX, baseY, 'boss');
+            // Wings
+            for (let i = 1; i <= 3; i++) {
+                createEnemy(centerX - i * 15, baseY + i * 12, 'butterfly');
+                createEnemy(centerX + i * 15, baseY + i * 12, 'butterfly');
+            }
+            // Body
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 3; c++) {
+                    createEnemy(centerX - 15 + c * 15, baseY + 40 + r * 15, 'bee');
+                }
+            }
+        }
+        else if (pattern === 'letter_a') {
+            // Letter A pattern - 알파벳 A
+            const centerX = GAME_WIDTH / 2;
+            const baseY = 60;
+
+            // Vertical lines
+            for (let i = 0; i < 5; i++) {
+                createEnemy(centerX - 25, baseY + i * 15, 'bee');
+                createEnemy(centerX + 25, baseY + i * 15, 'bee');
+            }
+            // Top and middle horizontal
+            for (let i = 0; i < 3; i++) {
+                createEnemy(centerX - 15 + i * 15, baseY, 'boss');
+                createEnemy(centerX - 15 + i * 15, baseY + 30, 'butterfly');
             }
         }
     }

@@ -11,8 +11,8 @@ export default class Enemy {
         if (type === 'king') {
             this.width = 48;
             this.height = 48;
-            this.hp = 30; // Takes 30 hits to kill!
-            this.maxHp = 30;
+            this.hp = 3000; // Takes 3000 hits to kill! Ultimate boss!
+            this.maxHp = 3000;
             this.shootTimer = 0;
             this.shootCooldown = 120; // Shoots every 2 seconds
         } else {

@@ -61,8 +61,8 @@ export default class Player {
 
         if (this.shootTimer <= 0) {
             this.shoot();
-            // Fire rate - Balanced
-            this.shootTimer = 2.79;
+            // Fire rate - Slower for more strategic play
+            this.shootTimer = 3.91;
         }
 
         if (this.shootTimer > 0) this.shootTimer--;
