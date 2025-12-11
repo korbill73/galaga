@@ -144,21 +144,22 @@ export default class Game {
         };
 
         if (pattern === 'grid') {
-            // Classic Grid
-            // Boss
-            for (let i = 0; i < 4; i++) createEnemy(startX + 40 + i * gapX, startY, 'boss');
-            // Butterfly
-            for (let i = 0; i < 8; i++) createEnemy(startX + i * gapX, startY + gapY, 'butterfly');
-            // Bee
+            // Classic Grid - Reduced by ~30%
+            // Boss: 4 -> 3
+            for (let i = 0; i < 3; i++) createEnemy(startX + 40 + i * gapX, startY, 'boss');
+            // Butterfly: 8 -> 6
+            for (let i = 0; i < 6; i++) createEnemy(startX + i * gapX + 20, startY + gapY, 'butterfly');
+            // Bee: 2 rows of 10 -> 2 rows of 7
             for (let row = 0; row < 2; row++) {
-                for (let i = 0; i < 10; i++) createEnemy(startX - 10 + i * gapX, startY + gapY * 2 + row * gapY, 'bee');
+                for (let i = 0; i < 7; i++) createEnemy(startX + 10 + i * gapX, startY + gapY * 2 + row * gapY, 'bee');
             }
         }
         else if (pattern === 'circle') {
             const centerX = GAME_WIDTH / 2;
             const centerY = 100;
             const radius = 60;
-            const count = 20 + this.level * 2;
+            // Count: 20 -> 14
+            const count = 14 + Math.floor(this.level * 1.5);
 
             for (let i = 0; i < count; i++) {
                 const angle = (i / count) * Math.PI * 2;
@@ -170,7 +171,8 @@ export default class Game {
         }
         else if (pattern === 'v-shape') {
             const centerX = GAME_WIDTH / 2;
-            const rows = 5 + Math.min(5, this.level);
+            // Rows: 5 -> 4
+            const rows = 4 + Math.min(3, this.level);
 
             for (let r = 0; r < rows; r++) {
                 // Left wing
@@ -178,16 +180,16 @@ export default class Game {
                 // Right wing
                 if (r > 0) createEnemy(centerX + r * 15, startY + r * 15, 'bee');
             }
-            // Fill middle logic or just wings? V-shape implies wings.
-            // Add inner V?
+            // Inner logic
             for (let r = 1; r < rows - 1; r++) {
                 createEnemy(centerX - r * 15 + 10, startY + r * 15 + 10, 'butterfly');
                 createEnemy(centerX + r * 15 - 10, startY + r * 15 + 10, 'butterfly');
             }
         }
         else if (pattern === 'staggered') {
-            const rows = 6;
-            const cols = 8;
+            // Reduced grid
+            const rows = 4; // 6 -> 4
+            const cols = 6; // 8 -> 6
             for (let r = 0; r < rows; r++) {
                 const offset = (r % 2) * 15;
                 for (let c = 0; c < cols; c++) {
@@ -298,12 +300,19 @@ export default class Game {
                     document.getElementById('score-display').innerText = this.score;
                     this.soundManager.play('explosion');
 
-                    // 20% -> 14% chance to drop powerup (30% reduction)
-                    if (Math.random() < 0.14) {
-                        const types = ['spread', 'missile', 'guided', 'bonus', 'shield'];
+                    // 20% -> 14% -> 10% chance to drop powerup (Reduced as requested)
+                    if (Math.random() < 0.10) {
+                        // Removed 'bonus' (standard 2000pts)
+                        const types = ['spread', 'missile', 'guided', 'shield'];
                         const type = types[Math.floor(Math.random() * types.length)];
                         this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
                     }
+                    // Rare Super Bonus (1% chance independent of powerups or part of it? Let's make it independent or rare replacement)
+                    // Let's make it a separate small chance
+                    else if (Math.random() < 0.01) {
+                        this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, 'super_bonus'));
+                    }
+
                     // Don't break if piercing, continue to check other enemies? 
                     // Actually, if we hit one, we shouldn't hit the *same* one again.
                     // But hitting multiple in one frame is rare unless overlapping.
@@ -325,7 +334,11 @@ export default class Game {
 
                 if (powerUp.type === 'bonus') {
                     this.score += 2000;
-                } else {
+                }
+                else if (powerUp.type === 'super_bonus') {
+                    this.score += 1000000; // 1 Million Points
+                }
+                else {
                     this.player.upgradeWeapon(powerUp.type);
                     this.score += 500;
                 }

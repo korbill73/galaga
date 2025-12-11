@@ -16,7 +16,7 @@ export default class PowerUp {
             this.image.src = 'assets/item_guided.png';
         } else if (this.type === 'spread') {
             this.image.src = 'assets/item_spread.png';
-        } else if (this.type === 'bonus') {
+        } else if (this.type === 'bonus' || this.type === 'super_bonus') {
             this.image.src = 'assets/item_bonus.png';
         } else if (this.type === 'shield') {
             this.image.src = 'assets/item_shield.png';

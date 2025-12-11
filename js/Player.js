@@ -144,15 +144,27 @@ export default class Player {
         // Draw Shield
         if (this.shieldTimer > 0) {
             ctx.save();
-            ctx.strokeStyle = `rgba(0, 200, 255, ${0.5 + Math.sin(Date.now() / 100) * 0.2})`;
-            ctx.lineWidth = 2;
+            // Fantastic Gradient Shield
+            const centerX = this.x + this.width / 2;
+            const centerY = this.y + this.height / 2;
+            const radius = this.width / 1.5;
+
+            // Create gradient
+            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.5, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.0)');
+            gradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.2)');
+            gradient.addColorStop(1, `rgba(0, 200, 255, ${0.6 + Math.sin(Date.now() / 100) * 0.2})`);
+
+            ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 1.5, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Outer glow ring
+            ctx.strokeStyle = `rgba(200, 255, 255, ${0.8 + Math.sin(Date.now() / 50) * 0.2})`;
+            ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Text to show time? Optional.
-            // ctx.fillStyle = 'white';
-            // ctx.fillText(Math.ceil(this.shieldTimer/60), this.x, this.y - 10);
             ctx.restore();
         }
     }
