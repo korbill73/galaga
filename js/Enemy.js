@@ -241,14 +241,23 @@ export default class Enemy {
         }
         else if (this.state === 'dive') {
             // Speed scales with level - SPEED TRIPLED (200% increase)
-            const speed = 0.54 + (this.game.level * 0.0225);
-            this.y += speed;
+            let speed = 0.54 + (this.game.level * 0.0225);
 
-            // Wiggle movement (Snake-like) - Increased amplitude and frequency
-            this.x += Math.sin(this.y / 15) * 3.5;
+            // PROFESSIONAL FEEL: Afterburner Logic
+            // If enemy is near bottom (past player logic), speed up significantly and dive straight
+            if (this.y > 200) {
+                speed *= 3.0; // Rush out (Afterburner!)
+                this.y += speed;
+                // No X wiggle - Dive straight down to exit fast
+            } else {
+                // Normal Wiggle Dive
+                this.y += speed;
+                // Wiggle movement (Snake-like)
+                this.x += Math.sin(this.y / 15) * 3.5;
+            }
 
             // Screen boundary check - Reset immediately if out of bounds
-            if (this.y > this.game.height + 20) {
+            if (this.y > this.game.height) {
                 const GAME_WIDTH = 224;
                 // Immediate respawn at top
                 this.y = -50;
