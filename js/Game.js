@@ -80,48 +80,23 @@ export default class Game {
             // Display leaderboard
             await this.leaderboard.displayLeaderboard();
 
-            // Check if this is a high score
-            if (this.leaderboard.isHighScore(this.score)) {
-                // Show name input
-                const nameInputSection = document.getElementById('name-input-section');
-                const nameInput = document.getElementById('player-name-input');
-                const submitBtn = document.getElementById('submit-score-btn');
+            const isHighScore = await this.leaderboard.isHighScore(this.score);
 
-                if (nameInputSection) nameInputSection.style.display = 'block';
-
-                // Setup submit handler (remove old listeners first)
-                const newSubmitBtn = submitBtn.cloneNode(true);
-                submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
-
-                newSubmitBtn.addEventListener('click', () => {
-                    const playerName = nameInput.value.trim() || 'PLAYER';
-                    this.leaderboard.saveScore(playerName, this.score, this.level);
-                    this.leaderboard.displayLeaderboard();
-                    nameInputSection.style.display = 'none';
-                    this.soundManager.play('powerup');
-                });
-
-                // Submit on Enter key
-                nameInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') newSubmitBtn.click();
-                });
-
-                // Auto-focus input - Multiple attempts for mobile
-                setTimeout(() => {
-                    nameInput.focus();
-                    nameInput.click(); // Mobile trigger
-                }, 100);
-                setTimeout(() => {
-                    nameInput.focus();
-                }, 300);
-                setTimeout(() => {
-                    nameInput.focus();
+            if (isHighScore) {
+                setTimeout(async () => {
+                    const playerName = prompt('🏆 NEW HIGH SCORE! 🏆\nEnter your name:', 'PLAYER');
+                    if (playerName !== null) {
+                        const name = playerName.trim() || 'PLAYER';
+                        await this.leaderboard.saveScore(name, this.score, this.level);
+                        this.soundManager.play('powerup');
+                    }
                 }, 500);
             } else {
                 // Hide name input if not high score
                 const nameInputSection = document.getElementById('name-input-section');
                 if (nameInputSection) nameInputSection.style.display = 'none';
             }
+
 
             // Check high score
             if (this.score > this.highScore) {
