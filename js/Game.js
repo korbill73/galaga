@@ -70,6 +70,26 @@ export default class Game {
         if (this.state === 'MENU') {
             startScreen.classList.remove('hidden');
             gameOverScreen.classList.add('hidden');
+
+            // Load Top 3 for Start Screen
+            this.leaderboard.getScores().then(scores => {
+                const list = document.getElementById('top-rank-list');
+                if (list) {
+                    if (scores.length === 0) {
+                        list.innerHTML = '<span style="color:#888">No records yet.</span>';
+                    } else {
+                        const top3 = scores.slice(0, 3);
+                        list.innerHTML = top3.map((s, i) =>
+                            `<div style="margin-bottom:4px;">
+                                <span style="color:${i === 0 ? '#ff0' : i === 1 ? '#ccc' : '#d48'}">${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span> 
+                                <span style="color:#fff">${s.player_name}</span> 
+                                <span style="color:#f0f; float:right;">${s.score.toLocaleString()}</span>
+                            </div>`
+                        ).join('');
+                    }
+                }
+            }).catch(e => console.error(e));
+
         } else if (this.state === 'PLAYING') {
             startScreen.classList.add('hidden');
             gameOverScreen.classList.add('hidden');
