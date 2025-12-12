@@ -180,6 +180,9 @@ export default class Game {
         const delayStep = Math.max(5, 10 - this.level); // Faster entrance as levels go up
 
         const createEnemy = (x, y, type) => {
+            // Hard Cap: Prevent too many enemies (Performance optimization)
+            if (this.enemies.length >= 100) return;
+
             // Keep within bounds
             if (x < 10) x = 10;
             if (x > GAME_WIDTH - 26) x = GAME_WIDTH - 26;
@@ -241,8 +244,9 @@ export default class Game {
         const patterns = ['grid', 'circle', 'v-shape', 'staggered', 'star', 'triangle', 'diamond', 'house', 'spaceship', 'letter_a'];
         const pattern = patterns[(this.level - 1) % patterns.length];
 
-        // Level scaling: Each level adds 30% more enemies (increased from 20%)
-        const levelMultiplier = 1 + (this.level - 1) * 0.3;
+        // Level scaling: Cap at 2.5x to prevent lag/overcrowding at high levels
+        // Was: 1 + (this.level - 1) * 0.3; -> 4.9x at level 14 (Too much!)
+        const levelMultiplier = Math.min(1 + (this.level - 1) * 0.1, 2.0);
 
         if (pattern === 'grid') {
             // Classic Grid - Scales with level (20% per level)

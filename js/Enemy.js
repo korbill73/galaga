@@ -195,13 +195,25 @@ export default class Enemy {
         }
 
         if (this.state === 'entrance') {
-            // Loop entrance - SPEED TRIPLED (200% increase)
-            this.t += 0.00315;
+            // Loop entrance speed
+            this.t += 0.008; // Faster animation cycle
 
             if (this.t < 1.0) {
-                // Slide down with loop - 30% slower descent
-                this.x = this.originX + Math.sin(this.t * 10 + this.entranceOffset) * 40;
-                this.y = this.originY + this.t * 8.75;
+                // Horizontal Looping
+                this.x = this.originX + Math.sin(this.t * 12 + this.entranceOffset) * 50;
+
+                // Vertical movement with Hover Effect
+                // First 40% of time: Hover near top (move slowly)
+                // Remaining 60%: Dive down
+                if (this.t < 0.4) {
+                    // Slowly enter screen
+                    this.y = this.originY + (this.t * 100);
+                } else {
+                    // Accelerate downwards
+                    // Map 0.4~1.0 to remaining distance
+                    const progress = (this.t - 0.4) / 0.6;
+                    this.y = (this.originY + 40) + (progress * 150);
+                }
             } else {
                 // Move to formation - SPEED TRIPLED
                 const dx = this.targetX - this.x;
@@ -231,23 +243,26 @@ export default class Enemy {
             // Speed scales with level - SPEED TRIPLED (200% increase)
             const speed = 0.54 + (this.game.level * 0.0225);
             this.y += speed;
-            this.x += Math.sin(this.y / 25) * 2.25;
 
-            if (this.y > 300) {
-                // Reset to center area instead of edges to prevent getting stuck
+            // Wiggle movement (Snake-like) - Increased amplitude and frequency
+            this.x += Math.sin(this.y / 15) * 3.5;
+
+            // Screen boundary check - Reset immediately if out of bounds
+            if (this.y > this.game.height + 20) {
                 const GAME_WIDTH = 224;
-                const centerX = GAME_WIDTH / 2;
-                // Spawn near center with random offset (±60 pixels from center)
-                this.originX = centerX + (Math.random() - 0.5) * 120;
-                // Clamp to safe bounds
-                if (this.originX < 30) this.originX = 30;
-                if (this.originX > GAME_WIDTH - 30) this.originX = GAME_WIDTH - 30;
+                // Immediate respawn at top
+                this.y = -50;
+                // Randomize X position for variety
+                this.x = Math.random() * (GAME_WIDTH - 40) + 20;
 
-                this.originY = -50 - Math.random() * 30;
-                this.x = this.originX;
-                this.y = this.originY;
+                this.originX = this.x;
+                this.originY = -50;
+
                 this.t = 0; // Reset entrance param
                 this.state = 'entrance';
+
+                // Add slight randomness to entrance behavior
+                this.entranceOffset = Math.random() * Math.PI * 2;
             }
         }
 
