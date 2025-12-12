@@ -1,6 +1,6 @@
 export default class Leaderboard {
     constructor() {
-        this.maxEntries = 10;
+        this.maxEntries = 50;
 
         // Supabase 설정
         const SUPABASE_URL = 'https://zdgptafwxowdxmfzwktu.supabase.co';

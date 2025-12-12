@@ -78,13 +78,20 @@ export default class Game {
             gameOverScreen.classList.remove('hidden');
 
             // Display leaderboard
-            await this.leaderboard.displayLeaderboard();
+            // Score > 0 이면 무조건 이름 입력 (테스트/활성화 용)
+            // 리더보드 로딩 에러가 있어도 입력창은 뜨도록 try-catch 분리
 
-            const isHighScore = await this.leaderboard.isHighScore(this.score);
+            try {
+                await this.leaderboard.displayLeaderboard();
+            } catch (e) {
+                console.error("Leaderboard error:", e);
+            }
 
-            if (isHighScore) {
+            // const isHighScore = await this.leaderboard.isHighScore(this.score);
+            // Force input for any score > 0 for now
+            if (this.score > 0) {
                 setTimeout(async () => {
-                    const playerName = prompt('🏆 NEW HIGH SCORE! 🏆\nEnter your name:', 'PLAYER');
+                    const playerName = prompt(`GAME OVER\nScore: ${this.score}\nEnter your name to save:`, 'PLAYER');
                     if (playerName !== null) {
                         const name = playerName.trim() || 'PLAYER';
                         await this.leaderboard.saveScore(name, this.score, this.level);
@@ -92,9 +99,7 @@ export default class Game {
                     }
                 }, 500);
             } else {
-                // Hide name input if not high score
-                const nameInputSection = document.getElementById('name-input-section');
-                if (nameInputSection) nameInputSection.style.display = 'none';
+                // 0 score - do nothing or show alert
             }
 
 
