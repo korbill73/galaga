@@ -4,71 +4,72 @@ const SpriteCache = {};
 export default class Enemy {
     constructor(game, x, y, type) {
         this.game = game;
-        this.x = x;
-        this.y = y;
         this.type = type; // 'bee', 'butterfly', 'boss', 'king'
 
-        // King boss is larger
+        // Stats Scaling
+        const level = game.level || 1;
+
+        // Dimensions & Base Stats
         if (type === 'king') {
             this.width = 48;
             this.height = 48;
-            this.hp = 2000 + (game.level * 200); // Scale with level
+            this.hp = 1000 + (level * 500); // 1500, 2000, 2500...
             this.maxHp = this.hp;
-            this.shootCooldown = Math.max(60, 120 - game.level * 2); // Faster shooting with levels
-            this.points = 5000;
+            this.shootCooldown = Math.max(30, 90 - level * 4); // Fast shooting
+            this.points = 5000 * level;
         } else {
             this.width = 16;
             this.height = 16;
-            this.hp = type === 'boss' ? 2 : 1; // Bosses take 2 hits
+            // Bosses (green) get tougher
+            this.hp = type === 'boss' ? (2 + Math.floor(level / 5)) : 1;
             this.maxHp = this.hp;
             this.points = type === 'boss' ? 300 : (type === 'butterfly' ? 160 : 100);
         }
 
-        // Elite chance (Red glowing enemies that drop items or give more points)
-        this.isElite = Math.random() > 0.95; // 5% chance
+        // Elite Enemy Chance (Red Glow, Faster, More HP)
+        // Chance increases with level: 5% + 1% per level
+        this.isElite = Math.random() < (0.05 + level * 0.01);
         if (this.isElite && type !== 'king') {
             this.hp *= 2;
-            this.points *= 3;
+            this.points *= 2;
+            this.speedMult = 1.3; // 30% Faster
+        } else {
+            this.speedMult = 1.0;
         }
 
-        this.shootTimer = Math.random() * 200;
         this.markedForDeletion = false;
 
-        // Animation state
-        this.frame = 0;
-        this.animationTimer = 0;
+        // Combat State
+        this.shootTimer = Math.random() * 200;
         this.hitTimer = 0; // Flash red when hit
 
-        // Path / Movement state
-        this.state = 'entrance'; // 'entrance', 'formation', 'dive', 'return'
+        // Animation
+        this.frame = 0;
+        this.animationTimer = 0;
 
-        // Formation Target Position
+        // Position & Movement
+        this.state = 'entrance'; // 'entrance', 'formation', 'dive'
         this.targetX = x;
         this.targetY = y;
 
-        // Spawn logic
-        this.originX = this.targetX + (Math.random() - 0.5) * 80;
-        this.originY = -50 - Math.random() * 100;
+        // Spawn Entrance Logic
+        this.originX = this.targetX + (Math.random() - 0.5) * 100;
+        this.originY = -50 - Math.random() * 150;
 
         this.x = this.originX;
         this.y = this.originY;
 
-        this.t = 0; // Curve parameter
+        this.t = 0; // Curve time
         this.entranceOffset = Math.random();
         this.delay = 0;
 
-        // Initialize Sprite Cache
+        // Ensure cache exists
         if (!SpriteCache[this.type]) {
             this.generateSpriteCache(this.type);
         }
     }
 
     generateSpriteCache(type) {
-        // ... (Keep existing sprite data arrays or use new neon ones) ...
-        // For brevity in this big file rewrite, I will assume the same sprites but 
-        // I will apply a glow effect in the draw method instead of baking it here.
-        // Let's copy the sprite arrays from previous file to ensure they exist.
-
         // Bee (Yellow/White)
         const beeSprite = [
             [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
@@ -116,6 +117,7 @@ export default class Enemy {
             [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
         ];
 
+        // King (Gold/Red/Purple)
         const kingSprite = [
             [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 0, 0, 0],
@@ -135,13 +137,13 @@ export default class Enemy {
 
         if (type === 'bee') {
             data = beeSprite;
-            palette = { 1: '#0ff', 2: '#fff' }; // Cyan/White
+            palette = { 1: '#0ff', 2: '#fff' }; // Neon Cyan
         } else if (type === 'butterfly') {
             data = butterflySprite;
-            palette = { 1: '#f0f', 2: '#ff0' }; // Magenta/Yellow
+            palette = { 1: '#f0f', 2: '#ff0' }; // Neon Magenta
         } else if (type === 'boss') {
             data = bossSprite;
-            palette = { 1: '#0f0', 2: '#f00', 3: '#fff' }; // Green/Red
+            palette = { 1: '#0f0', 2: '#f00', 3: '#fff' }; // Neon Green
         } else if (type === 'king') {
             data = kingSprite;
             palette = { 1: '#ffd700', 2: '#ff0000', 3: '#800080', 4: '#ffffff' };
@@ -151,8 +153,8 @@ export default class Enemy {
         c.width = type === 'king' ? 34 : 16;
         c.height = type === 'king' ? 22 : 16;
         const ctx = c.getContext('2d');
-
         const pixelSize = type === 'king' ? 2 : 1;
+
         for (let row = 0; row < data.length; row++) {
             for (let col = 0; col < (data[row] ? data[row].length : 0); col++) {
                 const colorCode = data[row][col];
@@ -173,39 +175,39 @@ export default class Enemy {
 
         if (this.hitTimer > 0) this.hitTimer--;
 
-        // Animation
+        // Animation Frame
         this.animationTimer++;
         if (this.animationTimer > 20) {
             this.animationTimer = 0;
             this.frame = !this.frame;
         }
 
-        // Shooting
+        // Shooting Behavior
         this.shootTimer++;
-        if (this.shootTimer > 200) {
-            // Basic random fire
-            if (Math.random() > 0.95 && this.y > 0 && this.y < this.game.height - 100) {
+        // Caps fire rate based on level
+        const fireThresh = Math.max(30, 250 - this.game.level * 15);
+
+        if (this.shootTimer > fireThresh) {
+            const shootChance = 0.05 + (this.game.level * 0.015);
+            // Only shoot if on screen
+            if (Math.random() < shootChance && this.y > 0 && this.y < this.game.height - 20) {
                 this.shoot();
             }
             this.shootTimer = 0;
         }
 
-        // King Boss Specific Logic
-        if (this.type === 'king') {
-            // Boss logic mostly handled in Game.js / patterns, 
-            // but we can add specific boss movement or phases here if needed.
-            // For now, it follows standard entrance/formation.
-        }
+        // Movement Speed Scaling
+        const levelSpeed = 1.0 + (this.game.level * 0.15); // +15% per level
 
-        // Behavior State Machine
+        // --- State Machine ---
         if (this.state === 'entrance') {
-            this.t += 0.015; // Speed
+            this.t += 0.015 * levelSpeed;
             if (this.t < 1.0) {
-                // Bezier-like curve to target
-                const cx = (this.originX + this.targetX) / 2 + Math.sin(this.t * Math.PI) * 50;
+                // Bezier Curve
                 this.x = (1 - this.t) * this.originX + this.t * this.targetX;
                 this.y = (1 - this.t) * this.originY + this.t * this.targetY;
-                this.x += Math.sin(this.t * 10) * 10; // Wiggle
+                // Wiggle
+                this.x += Math.sin(this.t * 15) * 5;
             } else {
                 this.x = this.targetX;
                 this.y = this.targetY;
@@ -214,35 +216,37 @@ export default class Enemy {
         }
         else if (this.state === 'formation') {
             // Hover
-            this.x = this.targetX + Math.sin(Date.now() / 300 + this.entranceOffset * 10) * 3;
+            this.x = this.targetX + Math.sin(Date.now() / 300 + this.entranceOffset * 5) * 4;
 
             // Dive Chance
-            const diveCh = 0.001 + (this.game.level * 0.0002);
+            // Increase dive chance significantly with level
+            const diveCh = 0.002 + (this.game.level * 0.0008);
             if (Math.random() < diveCh && this.type !== 'king') {
                 this.state = 'dive';
             }
         }
         else if (this.state === 'dive') {
-            this.y += 2 + (this.game.level * 0.2); // Dive Speed
-            this.x += Math.sin(this.y / 20) * 2;
+            // Dive Speed
+            const diveSpeed = (2.5 + (this.game.level * 0.35)) * this.speedMult;
+            this.y += diveSpeed;
+            // Sine Wave Motion
+            this.x += Math.sin(this.y / 20) * (3 * this.speedMult);
 
-            if (this.y > this.game.height) {
-                // Respawn at top for loop
-                this.y = -20;
+            // --- WRAP AROUND LOGIC ---
+            // If enemy goes off bottom, wrap to top to keep pressure on
+            if (this.y > this.game.height + 20) {
+                this.y = -30;
+                // Randomize X for unpredictability
                 this.x = Math.random() * (this.game.width - 20) + 10;
-                this.state = 'entrance';
-                this.originX = this.x;
-                this.originY = -20;
-                this.targetX = this.x; // Just fall back to where it spawns?
-                // Actually better to return to formation
-                this.t = 0;
+                // Stay in dive state for continuous attack
+                this.state = 'dive';
             }
         }
     }
 
     shoot() {
         if (this.type === 'king') {
-            // Triple shot
+            // Triple Bullet Pattern
             import('./Bullet.js').then(m => {
                 const B = m.default;
                 this.game.bullets.push(new B(this.game, this.x + this.width / 2, this.y + this.height, true));
@@ -250,6 +254,7 @@ export default class Enemy {
                 this.game.bullets.push(new B(this.game, this.x + this.width, this.y + this.height, true, 'right-angled'));
             });
         } else {
+            // Single Bullet
             import('./Bullet.js').then(m => {
                 this.game.bullets.push(new m.default(this.game, this.x + this.width / 2, this.y + this.height, true));
             });
@@ -262,10 +267,10 @@ export default class Enemy {
         const ctx = this.game.ctx;
         ctx.save();
 
-        // Hit Flash
+        // Flash White on Hit
         if (this.hitTimer > 0) {
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = '#fff';
+            ctx.fillStyle = '#ffffff';
             ctx.fillRect(this.x, this.y, this.width, this.height);
             ctx.restore();
             return;
@@ -273,18 +278,17 @@ export default class Enemy {
 
         const img = SpriteCache[this.type];
         if (img) {
-            // Shadow / Glow
-            if (this.isElite || this.type === 'king') {
-                ctx.shadowColor = this.isElite ? '#f00' : '#ff0';
+            // Neon Glow Effect
+            if (this.isElite || this.type === 'king' || this.type === 'boss') {
+                ctx.shadowColor = this.isElite ? '#ff0000' : (this.type === 'king' ? '#ffd700' : '#00ff00');
                 ctx.shadowBlur = 10;
             }
-
             ctx.drawImage(img, Math.floor(this.x), Math.floor(this.y), this.width, this.height);
         } else {
-            ctx.fillStyle = this.isElite ? '#f00' : '#0f0';
+            // Fallback
+            ctx.fillStyle = '#f00';
             ctx.fillRect(this.x, this.y, this.width, this.height);
         }
-
         ctx.restore();
     }
 }
