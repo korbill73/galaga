@@ -92,6 +92,13 @@ canvas {
     align-items: flex-end;
 }
 
+.score-group.center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+}
+
 .score-label {
     font-size: 10px;
     color: var(--retro-blue);

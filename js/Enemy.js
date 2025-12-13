@@ -13,26 +13,24 @@ export default class Enemy {
         if (type === 'king') {
             this.width = 48;
             this.height = 48;
-            this.hp = 1000 + (level * 500); // 1500, 2000, 2500...
+            this.hp = 1000 + (level * 500);
             this.maxHp = this.hp;
-            this.shootCooldown = Math.max(30, 90 - level * 4); // Fast shooting
+            this.shootCooldown = Math.max(30, 90 - level * 4);
             this.points = 5000 * level;
         } else {
             this.width = 16;
             this.height = 16;
-            // Bosses (green) get tougher
             this.hp = type === 'boss' ? (2 + Math.floor(level / 5)) : 1;
             this.maxHp = this.hp;
             this.points = type === 'boss' ? 300 : (type === 'butterfly' ? 160 : 100);
         }
 
-        // Elite Enemy Chance (Red Glow, Faster, More HP)
-        // Chance increases with level: 5% + 1% per level
+        // Elite Enemy Chance
         this.isElite = Math.random() < (0.05 + level * 0.01);
         if (this.isElite && type !== 'king') {
             this.hp *= 2;
             this.points *= 2;
-            this.speedMult = 1.3; // 30% Faster
+            this.speedMult = 1.3;
         } else {
             this.speedMult = 1.0;
         }
@@ -41,14 +39,14 @@ export default class Enemy {
 
         // Combat State
         this.shootTimer = Math.random() * 200;
-        this.hitTimer = 0; // Flash red when hit
+        this.hitTimer = 0;
 
         // Animation
         this.frame = 0;
         this.animationTimer = 0;
 
         // Position & Movement
-        this.state = 'entrance'; // 'entrance', 'formation', 'dive'
+        this.state = 'entrance';
         this.targetX = x;
         this.targetY = y;
 
@@ -59,7 +57,7 @@ export default class Enemy {
         this.x = this.originX;
         this.y = this.originY;
 
-        this.t = 0; // Curve time
+        this.t = 0;
         this.entranceOffset = Math.random();
         this.delay = 0;
 
@@ -184,29 +182,24 @@ export default class Enemy {
 
         // Shooting Behavior
         this.shootTimer++;
-        // Caps fire rate based on level
         const fireThresh = Math.max(30, 250 - this.game.level * 15);
-
         if (this.shootTimer > fireThresh) {
             const shootChance = 0.05 + (this.game.level * 0.015);
-            // Only shoot if on screen
             if (Math.random() < shootChance && this.y > 0 && this.y < this.game.height - 20) {
                 this.shoot();
             }
             this.shootTimer = 0;
         }
 
-        // Movement Speed Scaling
-        const levelSpeed = 1.0 + (this.game.level * 0.15); // +15% per level
+        // Speed
+        const levelSpeed = 1.0 + (this.game.level * 0.15);
 
         // --- State Machine ---
         if (this.state === 'entrance') {
             this.t += 0.015 * levelSpeed;
             if (this.t < 1.0) {
-                // Bezier Curve
                 this.x = (1 - this.t) * this.originX + this.t * this.targetX;
                 this.y = (1 - this.t) * this.originY + this.t * this.targetY;
-                // Wiggle
                 this.x += Math.sin(this.t * 15) * 5;
             } else {
                 this.x = this.targetX;
@@ -215,30 +208,26 @@ export default class Enemy {
             }
         }
         else if (this.state === 'formation') {
-            // Hover
             this.x = this.targetX + Math.sin(Date.now() / 300 + this.entranceOffset * 5) * 4;
 
-            // Dive Chance
-            // Increase dive chance significantly with level
             const diveCh = 0.002 + (this.game.level * 0.0008);
             if (Math.random() < diveCh && this.type !== 'king') {
                 this.state = 'dive';
             }
         }
         else if (this.state === 'dive') {
-            // Dive Speed
             const diveSpeed = (2.5 + (this.game.level * 0.35)) * this.speedMult;
             this.y += diveSpeed;
-            // Sine Wave Motion
             this.x += Math.sin(this.y / 20) * (3 * this.speedMult);
 
-            // --- WRAP AROUND LOGIC ---
-            // If enemy goes off bottom, wrap to top to keep pressure on
+            // X Boundary Check for Dive
+            if (this.x < 0) this.x = 0;
+            if (this.x > this.game.width - this.width) this.x = this.game.width - this.width;
+
+            // Loop Top
             if (this.y > this.game.height + 20) {
                 this.y = -30;
-                // Randomize X for unpredictability
                 this.x = Math.random() * (this.game.width - 20) + 10;
-                // Stay in dive state for continuous attack
                 this.state = 'dive';
             }
         }
@@ -246,7 +235,6 @@ export default class Enemy {
 
     shoot() {
         if (this.type === 'king') {
-            // Triple Bullet Pattern
             import('./Bullet.js').then(m => {
                 const B = m.default;
                 this.game.bullets.push(new B(this.game, this.x + this.width / 2, this.y + this.height, true));
@@ -254,7 +242,6 @@ export default class Enemy {
                 this.game.bullets.push(new B(this.game, this.x + this.width, this.y + this.height, true, 'right-angled'));
             });
         } else {
-            // Single Bullet
             import('./Bullet.js').then(m => {
                 this.game.bullets.push(new m.default(this.game, this.x + this.width / 2, this.y + this.height, true));
             });
@@ -267,7 +254,6 @@ export default class Enemy {
         const ctx = this.game.ctx;
         ctx.save();
 
-        // Flash White on Hit
         if (this.hitTimer > 0) {
             ctx.globalCompositeOperation = 'source-over';
             ctx.fillStyle = '#ffffff';
@@ -278,14 +264,12 @@ export default class Enemy {
 
         const img = SpriteCache[this.type];
         if (img) {
-            // Neon Glow Effect
             if (this.isElite || this.type === 'king' || this.type === 'boss') {
                 ctx.shadowColor = this.isElite ? '#ff0000' : (this.type === 'king' ? '#ffd700' : '#00ff00');
                 ctx.shadowBlur = 10;
             }
             ctx.drawImage(img, Math.floor(this.x), Math.floor(this.y), this.width, this.height);
         } else {
-            // Fallback
             ctx.fillStyle = '#f00';
             ctx.fillRect(this.x, this.y, this.width, this.height);
         }

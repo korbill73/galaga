@@ -8,7 +8,7 @@ export default class Bullet {
         this.isEnemy = isEnemy;
         this.type = type;
 
-        this.speed = isEnemy ? 6 : 12; // Much faster bullets
+        this.speed = isEnemy ? 8 : 20; // 3x speed boost
         this.vx = 0;
         this.vy = isEnemy ? this.speed : -this.speed;
         this.rotation = 0;

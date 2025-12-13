@@ -194,87 +194,83 @@ export default class Game {
         }
 
         this.level++;
-        this.updateScoreUI(); // Update level display
+        this.updateScoreUI();
 
-        const difficulty = 1 + (this.level * 0.15);
-        const isBossLevel = (this.level === this.MAX_LEVEL); // Final Level is Boss Level
+        const isBossLevel = (this.level === this.MAX_LEVEL);
 
-        let delayCounter = 0;
-        const delayStep = Math.max(5, 12 - this.level);
+        // Letter Formations (A-J for levels 1-10)
+        // 0-9
+        const letters = [
+            "  ###  \n #   # \n #   # \n ##### \n #   # \n #   # \n #   # ", // A
+            " ####  \n #   # \n ####  \n #   # \n #   # \n #   # \n ####  ", // B
+            "  #### \n #     \n #     \n #     \n #     \n #     \n  #### ", // C
+            " ####  \n #   # \n #   # \n #   # \n #   # \n #   # \n ####  ", // D
+            " ##### \n #     \n #     \n ####  \n #     \n #     \n ##### ", // E
+            " ##### \n #     \n #     \n ####  \n #     \n #     \n #     ", // F
+            "  #### \n #     \n #  ## \n #   # \n #   # \n #   # \n  #### ", // G
+            " #   # \n #   # \n #   # \n ##### \n #   # \n #   # \n #   # ", // H
+            " ##### \n   #   \n   #   \n   #   \n   #   \n   #   \n ##### ", // I
+            " ##### \n    #  \n    #  \n    #  \n #  #  \n #  #  \n  ##   "  // J/T hybrid? Let's do J
+        ];
 
-        const createEnemy = (x, y, type) => {
-            if (this.enemies.length >= 80) return;
-            if (x < 10) x = 10;
-            if (x > GAME_WIDTH - 26) x = GAME_WIDTH - 26;
-
-            const enemy = new Enemy(this, x, y, type);
-            enemy.delay = delayCounter++ * delayStep;
-            this.enemies.push(enemy);
-        };
-
-        // BOSS WAVE (Final Level)
+        // Specific Boss Level (Level 10)
         if (isBossLevel) {
             this.bossWarning = 180;
             this.soundManager.play('powerup');
 
+            // Boss Formation (Crown Shape)
             const centerX = GAME_WIDTH / 2;
-            const centerY = 60;
+            const startY = 80;
 
-            // The King
-            createEnemy(centerX, centerY, 'king');
+            // King
+            this.enemies.push(new Enemy(this, centerX, startY, 'king'));
 
-            // Escorts
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2;
-                createEnemy(centerX + Math.cos(angle) * 50, centerY + Math.sin(angle) * 40, 'boss');
-            }
-            for (let i = 0; i < 12; i++) {
-                const angle = (i / 12) * Math.PI * 2;
-                createEnemy(centerX + Math.cos(angle) * 80, centerY + Math.sin(angle) * 60, 'butterfly');
+            // Escorts (Dense)
+            for (let i = 0; i < 30; i++) {
+                const x = centerX + Math.cos(i * 0.5) * (80 + Math.random() * 20);
+                const y = startY + Math.sin(i * 0.5) * (60 + Math.random() * 20);
+                this.enemies.push(new Enemy(this, x, y, 'boss'));
             }
             return;
         }
 
-        // Standard Waves
-        const patterns = ['grid', 'circle', 'v-shape', 'diamond', 'helix', 'swarm'];
-        const pattern = patterns[(this.level - 1) % patterns.length];
+        // Generate Letter Pattern
+        const patternIdx = (this.level - 1) % letters.length;
+        const patternStr = letters[patternIdx];
+        const rows = patternStr.split('\n');
 
-        // Dynamic scaling
-        const countMult = Math.min(1 + (this.level * 0.1), 1.8);
-        const startY = 40;
-        const centerX = GAME_WIDTH / 2;
+        // Grid config
+        const cellSize = 18;
+        const offsetX = (GAME_WIDTH - (rows[0].length * cellSize)) / 2;
+        const offsetY = 50;
 
-        if (pattern === 'grid') {
-            const rows = 3 + Math.floor(this.level / 3);
-            const cols = 6 + Math.floor(this.level / 4);
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    const type = r === 0 ? 'boss' : (r === 1 ? 'butterfly' : 'bee');
-                    createEnemy(30 + c * 25, startY + r * 20, type);
+        let delayCounter = 0;
+
+        // Increase Density: Create multiple enemies per "pixel" in the letter
+        const density = 2; // 2 enemies per # logic?
+        // Or just draw the letter and then fill background with randoms?
+        // User asked for "5배 정도 많이".
+        // A 7x7 grid has ~20-30 points. * 5 = 150 enemies. perfect.
+
+        for (let r = 0; r < rows.length; r++) {
+            const rowStr = rows[r];
+            for (let c = 0; c < rowStr.length; c++) {
+                if (rowStr[c] === '#') {
+                    // Spawn a cluster for this point
+                    for (let k = 0; k < 4; k++) {
+                        const type = k === 0 ? 'boss' : (k === 1 ? 'butterfly' : 'bee');
+                        // Jitter position to form a thick letter
+                        const ex = offsetX + (c * cellSize) + (Math.random() * 14 - 7);
+                        const ey = offsetY + (r * cellSize) + (Math.random() * 14 - 7);
+
+                        // Limit width
+                        if (ex > 10 && ex < GAME_WIDTH - 20) {
+                            const enemy = new Enemy(this, ex, ey, type);
+                            enemy.delay = delayCounter++ * 3; // Fast stream
+                            this.enemies.push(enemy);
+                        }
+                    }
                 }
-            }
-        }
-        else if (pattern === 'circle') {
-            const count = 20 * countMult;
-            for (let i = 0; i < count; i++) {
-                const angle = (i / count) * Math.PI * 2;
-                const r = 60;
-                createEnemy(centerX + Math.cos(angle) * r, 100 + Math.sin(angle) * r * 0.7, i % 5 === 0 ? 'boss' : 'butterfly');
-            }
-        }
-        else if (pattern === 'v-shape') {
-            const rows = 12 * countMult;
-            for (let i = 0; i < rows; i++) {
-                createEnemy(centerX - i * 10, startY + i * 10, 'bee');
-                createEnemy(centerX + i * 10, startY + i * 10, 'bee');
-                if (i % 3 === 0) createEnemy(centerX, startY + i * 15, 'boss');
-            }
-        }
-        else {
-            // Random scatter for helix/swarm/diamond fallback
-            const count = 30 * countMult;
-            for (let i = 0; i < count; i++) {
-                createEnemy(20 + Math.random() * (GAME_WIDTH - 40), -50 - Math.random() * 200, Math.random() > 0.8 ? 'boss' : 'bee');
             }
         }
     }
@@ -420,8 +416,17 @@ export default class Game {
     updateScoreUI() {
         const scoreEl = document.getElementById('score-display');
         const livesEl = document.querySelector('.score-label'); // Reuse 1UP label for Lives/Level
+        const enemyCountEl = document.getElementById('enemy-count-display');
+
         if (scoreEl) scoreEl.innerText = Math.floor(this.score).toLocaleString();
         if (livesEl) livesEl.innerHTML = `LIVES: ${this.lives} <span style="margin-left:10px; color:#aaa;">LV: ${this.level}</span>`;
+        if (enemyCountEl) {
+            // Count enemies that are NOT delay > 0 (spawned) or just all? User wants to see how many left
+            // Just filtering markedForDeletion
+            const count = this.enemies.filter(e => !e.markedForDeletion).length;
+            enemyCountEl.innerText = count;
+            enemyCountEl.style.color = count < 10 ? '#ff0000' : '#ffff00';
+        }
     }
 
     updateBossUI(active, hp, maxHp) {
@@ -451,6 +456,8 @@ export default class Game {
 
             for (const enemy of this.enemies) {
                 if (enemy.markedForDeletion || enemy.delay > 0 || enemy.y < 0) continue;
+                // Invincibility during ENTRANCE
+                if (enemy.state === 'entrance') continue;
 
                 const eRect = { left: enemy.x, right: enemy.x + enemy.width, top: enemy.y, bottom: enemy.y + enemy.height };
 
