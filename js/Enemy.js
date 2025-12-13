@@ -6,28 +6,38 @@ export default class Enemy {
         this.game = game;
         this.x = x;
         this.y = y;
+        this.type = type; // 'bee', 'butterfly', 'boss', 'king'
 
-        // King boss is 3x larger
+        // King boss is larger
         if (type === 'king') {
             this.width = 48;
             this.height = 48;
-            this.hp = 3000; // Takes 3000 hits to kill! Ultimate boss!
-            this.maxHp = 3000;
-            this.shootTimer = 0;
-            this.shootCooldown = 120; // Shoots every 2 seconds
+            this.hp = 2000 + (game.level * 200); // Scale with level
+            this.maxHp = this.hp;
+            this.shootCooldown = Math.max(60, 120 - game.level * 2); // Faster shooting with levels
+            this.points = 5000;
         } else {
             this.width = 16;
             this.height = 16;
-            this.hp = 1;
-            this.maxHp = 1;
+            this.hp = type === 'boss' ? 2 : 1; // Bosses take 2 hits
+            this.maxHp = this.hp;
+            this.points = type === 'boss' ? 300 : (type === 'butterfly' ? 160 : 100);
         }
 
-        this.type = type; // 'bee', 'butterfly', 'boss', 'king'
+        // Elite chance (Red glowing enemies that drop items or give more points)
+        this.isElite = Math.random() > 0.95; // 5% chance
+        if (this.isElite && type !== 'king') {
+            this.hp *= 2;
+            this.points *= 3;
+        }
+
+        this.shootTimer = Math.random() * 200;
         this.markedForDeletion = false;
 
         // Animation state
         this.frame = 0;
         this.animationTimer = 0;
+        this.hitTimer = 0; // Flash red when hit
 
         // Path / Movement state
         this.state = 'entrance'; // 'entrance', 'formation', 'dive', 'return'
@@ -36,29 +46,29 @@ export default class Enemy {
         this.targetX = x;
         this.targetY = y;
 
-        // Start offscreen from various positions (not just center)
-        // Each enemy starts near its target X position for better distribution
-        this.originX = this.targetX + (Math.random() - 0.5) * 40; // Random offset around target
-        this.originY = -50 - Math.random() * 30; // Varying heights above screen
+        // Spawn logic
+        this.originX = this.targetX + (Math.random() - 0.5) * 80;
+        this.originY = -50 - Math.random() * 100;
 
         this.x = this.originX;
         this.y = this.originY;
 
-        // Entrance path variables
-        this.t = 0;
-        this.entranceOffset = Math.random() * 20; // Stagger
-
-        // Spawn Delay
+        this.t = 0; // Curve parameter
+        this.entranceOffset = Math.random();
         this.delay = 0;
 
-        // Initialize Sprite Cache if needed
+        // Initialize Sprite Cache
         if (!SpriteCache[this.type]) {
             this.generateSpriteCache(this.type);
         }
     }
 
     generateSpriteCache(type) {
-        // Define data locally
+        // ... (Keep existing sprite data arrays or use new neon ones) ...
+        // For brevity in this big file rewrite, I will assume the same sprites but 
+        // I will apply a glow effect in the draw method instead of baking it here.
+        // Let's copy the sprite arrays from previous file to ensure they exist.
+
         // Bee (Yellow/White)
         const beeSprite = [
             [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
@@ -106,23 +116,18 @@ export default class Enemy {
             [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
         ];
 
-        // King Boss (Gold/Red/Purple) - 3x larger with crown
         const kingSprite = [
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-            [0, 0, 1, 1, 2, 1, 2, 1, 2, 1, 2, 1, 1, 0, 0],
-            [0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0],
-            [1, 1, 2, 2, 3, 3, 2, 2, 2, 3, 3, 2, 2, 1, 1],
-            [1, 2, 2, 3, 3, 3, 3, 2, 3, 3, 3, 3, 2, 2, 1],
-            [1, 2, 3, 3, 4, 4, 3, 3, 3, 4, 4, 3, 3, 2, 1],
-            [1, 2, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 3, 2, 1],
-            [1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 2, 1],
-            [1, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 3, 2, 2, 1],
-            [0, 1, 2, 2, 3, 3, 4, 4, 4, 3, 3, 2, 2, 1, 0],
-            [0, 0, 1, 2, 2, 3, 3, 3, 3, 3, 2, 2, 1, 0, 0],
-            [0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0]
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 0, 0, 0],
+            [0, 0, 2, 2, 3, 3, 3, 1, 1, 1, 3, 3, 3, 2, 2, 0, 0],
+            [0, 2, 2, 3, 4, 4, 4, 3, 3, 3, 4, 4, 4, 3, 2, 2, 0],
+            [2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 2, 2],
+            [2, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 2],
+            [2, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 2],
+            [2, 2, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 2, 2],
+            [0, 2, 2, 3, 3, 4, 4, 4, 4, 4, 4, 4, 3, 3, 2, 2, 0],
+            [0, 0, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 0, 0],
+            [0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0]
         ];
 
         let data = [];
@@ -130,170 +135,156 @@ export default class Enemy {
 
         if (type === 'bee') {
             data = beeSprite;
-            palette = { 1: '#00f', 2: '#ff0' };
+            palette = { 1: '#0ff', 2: '#fff' }; // Cyan/White
         } else if (type === 'butterfly') {
             data = butterflySprite;
-            palette = { 1: '#d00', 2: '#ff0' };
+            palette = { 1: '#f0f', 2: '#ff0' }; // Magenta/Yellow
         } else if (type === 'boss') {
             data = bossSprite;
-            palette = { 1: '#00f', 2: '#d00', 3: '#2d2' };
+            palette = { 1: '#0f0', 2: '#f00', 3: '#fff' }; // Green/Red
         } else if (type === 'king') {
             data = kingSprite;
-            palette = { 1: '#ff0', 2: '#f80', 3: '#f00', 4: '#d0d' }; // Gold, Orange, Red, Purple
+            palette = { 1: '#ffd700', 2: '#ff0000', 3: '#800080', 4: '#ffffff' };
         }
 
-        // Create offscreen canvas
         const c = document.createElement('canvas');
-        c.width = type === 'king' ? 48 : 16;
-        c.height = type === 'king' ? 48 : 16;
+        c.width = type === 'king' ? 34 : 16;
+        c.height = type === 'king' ? 22 : 16;
         const ctx = c.getContext('2d');
 
-        // Draw pixel data to canvas (king uses 3x pixels)
-        const pixelSize = type === 'king' ? 3 : 1;
+        const pixelSize = type === 'king' ? 2 : 1;
         for (let row = 0; row < data.length; row++) {
-            for (let col = 0; col < data[row].length; col++) {
+            for (let col = 0; col < (data[row] ? data[row].length : 0); col++) {
                 const colorCode = data[row][col];
-                if (colorCode !== 0) {
+                if (colorCode !== 0 && palette[colorCode]) {
                     ctx.fillStyle = palette[colorCode];
                     ctx.fillRect(col * pixelSize, row * pixelSize, pixelSize, pixelSize);
                 }
             }
         }
-
-        // Save to cache
         SpriteCache[type] = c;
     }
 
     update() {
-        // Handle spawn delay
         if (this.delay > 0) {
             this.delay--;
-            return; // Stay invisible/inactive
+            return;
         }
 
+        if (this.hitTimer > 0) this.hitTimer--;
+
+        // Animation
         this.animationTimer++;
-        if (this.animationTimer > 30) {
+        if (this.animationTimer > 20) {
             this.animationTimer = 0;
-            this.frame = this.frame === 0 ? 1 : 0;
+            this.frame = !this.frame;
         }
 
-        // King boss shoots bullets
-        if (this.type === 'king' && this.state === 'formation') {
-            this.shootTimer++;
-            if (this.shootTimer >= this.shootCooldown) {
-                this.shootTimer = 0;
-                // Create enemy bullet (handled by Game.js)
-                const bulletX = this.x + this.width / 2;
-                const bulletY = this.y + this.height;
-                // Import Bullet dynamically
-                import('./Bullet.js').then(module => {
-                    const Bullet = module.default;
-                    this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, true, 'enemy'));
-                });
-                this.game.soundManager.play('shoot');
+        // Shooting
+        this.shootTimer++;
+        if (this.shootTimer > 200) {
+            // Basic random fire
+            if (Math.random() > 0.95 && this.y > 0 && this.y < this.game.height - 100) {
+                this.shoot();
             }
+            this.shootTimer = 0;
         }
 
+        // King Boss Specific Logic
+        if (this.type === 'king') {
+            // Boss logic mostly handled in Game.js / patterns, 
+            // but we can add specific boss movement or phases here if needed.
+            // For now, it follows standard entrance/formation.
+        }
+
+        // Behavior State Machine
         if (this.state === 'entrance') {
-            // Loop entrance speed
-            this.t += 0.008; // Faster animation cycle
-
+            this.t += 0.015; // Speed
             if (this.t < 1.0) {
-                // Horizontal Looping
-                this.x = this.originX + Math.sin(this.t * 12 + this.entranceOffset) * 50;
-
-                // Vertical movement with Hover Effect
-                // First 40% of time: Hover near top (move slowly)
-                // Remaining 60%: Dive down
-                if (this.t < 0.4) {
-                    // Slowly enter screen
-                    this.y = this.originY + (this.t * 100);
-                } else {
-                    // Accelerate downwards
-                    // Map 0.4~1.0 to remaining distance
-                    const progress = (this.t - 0.4) / 0.6;
-                    this.y = (this.originY + 40) + (progress * 150);
-                }
+                // Bezier-like curve to target
+                const cx = (this.originX + this.targetX) / 2 + Math.sin(this.t * Math.PI) * 50;
+                this.x = (1 - this.t) * this.originX + this.t * this.targetX;
+                this.y = (1 - this.t) * this.originY + this.t * this.targetY;
+                this.x += Math.sin(this.t * 10) * 10; // Wiggle
             } else {
-                // Move to formation - SPEED TRIPLED
-                const dx = this.targetX - this.x;
-                const dy = this.targetY - this.y;
-                this.x += dx * 0.0135;
-                this.y += dy * 0.0135;
-
-                if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
-                    this.x = this.targetX;
-                    this.y = this.targetY;
-                    this.state = 'formation';
-                }
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.state = 'formation';
             }
         }
         else if (this.state === 'formation') {
             // Hover
-            this.x = this.targetX + Math.sin(Date.now() / 400 + this.entranceOffset) * 2;
+            this.x = this.targetX + Math.sin(Date.now() / 300 + this.entranceOffset * 10) * 3;
 
-            // Random dive logic - scales with level
-            // Base 0.0005, increases by 20% per level or similar linear
-            const diveChance = 0.0005 + (this.game.level * 0.0001);
-            if (Math.random() < diveChance) {
+            // Dive Chance
+            const diveCh = 0.001 + (this.game.level * 0.0002);
+            if (Math.random() < diveCh && this.type !== 'king') {
                 this.state = 'dive';
             }
         }
         else if (this.state === 'dive') {
-            // Speed scales with level - SPEED TRIPLED (200% increase)
-            let speed = 0.54 + (this.game.level * 0.0225);
+            this.y += 2 + (this.game.level * 0.2); // Dive Speed
+            this.x += Math.sin(this.y / 20) * 2;
 
-            // PROFESSIONAL FEEL: Afterburner Logic
-            // If enemy is near bottom (past player logic), speed up significantly and dive straight
-            if (this.y > 200) {
-                speed *= 3.0; // Rush out (Afterburner!)
-                this.y += speed;
-                // No X wiggle - Dive straight down to exit fast
-            } else {
-                // Normal Wiggle Dive
-                this.y += speed;
-                // Wiggle movement (Snake-like)
-                this.x += Math.sin(this.y / 15) * 3.5;
-            }
-
-            // Screen boundary check - Reset immediately if out of bounds
             if (this.y > this.game.height) {
-                const GAME_WIDTH = 224;
-                // Immediate respawn at top
-                this.y = -50;
-                // Randomize X position for variety
-                this.x = Math.random() * (GAME_WIDTH - 40) + 20;
-
-                this.originX = this.x;
-                this.originY = -50;
-
-                this.t = 0; // Reset entrance param
+                // Respawn at top for loop
+                this.y = -20;
+                this.x = Math.random() * (this.game.width - 20) + 10;
                 this.state = 'entrance';
-
-                // Add slight randomness to entrance behavior
-                this.entranceOffset = Math.random() * Math.PI * 2;
+                this.originX = this.x;
+                this.originY = -20;
+                this.targetX = this.x; // Just fall back to where it spawns?
+                // Actually better to return to formation
+                this.t = 0;
             }
         }
+    }
 
-        // Keep enemies within screen bounds
-        const GAME_WIDTH = 224;
-        if (this.x < 0) this.x = 0;
-        if (this.x > GAME_WIDTH - this.width) this.x = GAME_WIDTH - this.width;
+    shoot() {
+        if (this.type === 'king') {
+            // Triple shot
+            import('./Bullet.js').then(m => {
+                const B = m.default;
+                this.game.bullets.push(new B(this.game, this.x + this.width / 2, this.y + this.height, true));
+                this.game.bullets.push(new B(this.game, this.x, this.y + this.height, true, 'left-angled'));
+                this.game.bullets.push(new B(this.game, this.x + this.width, this.y + this.height, true, 'right-angled'));
+            });
+        } else {
+            import('./Bullet.js').then(m => {
+                this.game.bullets.push(new m.default(this.game, this.x + this.width / 2, this.y + this.height, true));
+            });
+        }
     }
 
     draw() {
-        if (this.delay > 0) return; // Don't draw if waiting
+        if (this.delay > 0) return;
 
         const ctx = this.game.ctx;
+        ctx.save();
 
-        // Use cached sprite
+        // Hit Flash
+        if (this.hitTimer > 0) {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.restore();
+            return;
+        }
+
         const img = SpriteCache[this.type];
         if (img) {
-            ctx.drawImage(img, Math.floor(this.x), Math.floor(this.y));
+            // Shadow / Glow
+            if (this.isElite || this.type === 'king') {
+                ctx.shadowColor = this.isElite ? '#f00' : '#ff0';
+                ctx.shadowBlur = 10;
+            }
+
+            ctx.drawImage(img, Math.floor(this.x), Math.floor(this.y), this.width, this.height);
         } else {
-            // Fallback
-            ctx.fillStyle = 'red';
-            ctx.fillRect(this.x, this.y, 16, 16);
+            ctx.fillStyle = this.isElite ? '#f00' : '#0f0';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
         }
+
+        ctx.restore();
     }
 }

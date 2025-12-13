@@ -1,12 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap');
 
 :root {
-    --bg-color: #111;
+    --bg-color: #050510;
     --canvas-bg: #000;
-    --retro-red: #d00;
-    --retro-white: #ededed;
-    --retro-blue: #00f;
-    --retro-yellow: #ff0;
+    --retro-red: #ff3860;
+    --retro-green: #09fbd3;
+    --retro-blue: #08f7fe;
+    --retro-yellow: #f5d300;
+    --retro-purple: #fe53bb;
+    --ui-glow: 0 0 10px rgba(8, 247, 254, 0.5);
 }
 
 * {
@@ -16,48 +18,46 @@
 }
 
 body {
-    background-color: var(--bg-color);
-    color: var(--retro-white);
-    font-family: 'Press Start 2P', cursive;
+    background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
+    color: #fff;
+    font-family: 'Rajdhani', sans-serif;
+    /* Modern sci-fi font for UI */
     height: 100vh;
     width: 100vw;
-    /* Explicit width */
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    /* touch-action: none; - REMOVED to allow input fields */
-    /* Prevent swipe navigation/scrolling on mobile */
 }
 
 #game-container {
     position: relative;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-    border: 2px solid #333;
+    box-shadow: 0 0 40px rgba(8, 247, 254, 0.2), 0 0 10px rgba(0, 0, 0, 0.8);
+    border: 1px solid #333;
+    border-radius: 4px;
 
-    /* Responsive scaling - fit within viewport */
     width: 100vw;
-    max-width: 448px;
-    /* Max desktop size */
+    max-width: 500px;
+    /* Slightly wider for modern feel */
     height: auto;
-    aspect-ratio: 224/288;
-    max-height: 90vh;
-    /* Leave room for browser bars */
+    aspect-ratio: 3/4;
+    max-height: 95vh;
 
-    /* Center in parent */
     margin: 0 auto;
     overflow: hidden;
-    /* Prevent dragging the page or scrollbars */
+    background-color: #000;
 }
 
 canvas {
-    background-color: var(--canvas-bg);
+    background-color: transparent;
     display: block;
     width: 100%;
     height: 100%;
     image-rendering: pixelated;
+    /* Keep pixel art crisp */
 }
 
+/* UI LAYER */
 #ui-layer {
     position: absolute;
     top: 0;
@@ -68,80 +68,161 @@ canvas {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    padding: 10px;
 }
 
+/* SCORE BOARD */
 #score-board {
     display: flex;
     justify-content: space-between;
-    /* Space out better */
-    padding: 10px 20px;
-    /* Add side padding */
     width: 100%;
-    text-align: center;
-    color: var(--retro-red);
+    padding: 10px 15px;
+    font-family: 'Press Start 2P', cursive;
     text-shadow: 2px 2px 0px #000;
     z-index: 20;
-    /* Ensure on top */
-    position: relative;
+}
+
+.score-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.score-group.right {
+    align-items: flex-end;
 }
 
 .score-label {
-    font-size: 14px;
-    /* Slightly smaller */
-    margin-bottom: 5px;
+    font-size: 10px;
+    color: var(--retro-blue);
+    margin-bottom: 4px;
+    text-transform: uppercase;
 }
 
 #score-display,
 #highscore-display {
-    color: var(--retro-white);
+    color: #fff;
     font-size: 14px;
 }
 
-/* Mobile specific for UI */
-@media (max-width: 600px) {
-    #score-board {
-        padding: 5px;
-    }
-
-    .score-label,
-    #score-display,
-    #highscore-display {
-        font-size: 10px;
-        /* Compress for small width */
-    }
+/* COMBO METER */
+#combo-container {
+    position: absolute;
+    top: 60px;
+    left: 15px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    text-align: left;
 }
 
+#combo-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 800;
+    font-size: 32px;
+    color: var(--retro-yellow);
+    font-style: italic;
+    text-shadow: 0 0 10px var(--retro-red);
+}
+
+#combo-label {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    color: var(--retro-red);
+    margin-top: -5px;
+}
+
+/* BOSS HP BAR */
+#boss-hud {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    display: none;
+    /* Hidden by default */
+    flex-direction: column;
+    align-items: center;
+}
+
+#boss-name {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    color: var(--retro-red);
+    margin-bottom: 4px;
+    text-shadow: 1px 1px 0 #000;
+}
+
+#boss-hp-bar {
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border: 1px solid #555;
+    position: relative;
+}
+
+#boss-hp-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #f00, #ff0);
+    transition: width 0.2s;
+}
+
+/* GAME OVER & INFO SCREENS */
 .hidden {
     display: none !important;
 }
 
 #start-screen,
-#game-over-screen {
+#game-over-screen,
+#victory-screen {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
     width: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 40px 0;
+    backdrop-filter: blur(4px);
+    z-index: 100;
 }
 
 .logo {
-    font-size: 48px;
-    background: linear-gradient(to bottom, #f00, #ff0, #0f0, #0ff, #00f, #f0f);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 40px;
+    background: linear-gradient(to bottom, #d00, #f00, #ff0);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.5));
+    margin-bottom: 10px;
+}
+
+.title-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 24px;
+    letter-spacing: 4px;
+    color: var(--retro-blue);
+    margin-top: 0px;
     margin-bottom: 40px;
-    filter: drop-shadow(4px 4px 0px #000);
+    text-transform: uppercase;
+    text-shadow: 0 0 5px var(--retro-blue);
 }
 
 .blink {
-    animation: blinker 1s linear infinite;
-    color: var(--retro-yellow);
+    animation: blinker 0.8s ease-in-out infinite alternate;
+    color: var(--retro-green);
+    font-family: 'Press Start 2P';
+    font-size: 12px;
 }
 
 @keyframes blinker {
-    50% {
-        opacity: 0;
+    from {
+        opacity: 1;
+        text-shadow: 0 0 10px var(--retro-green);
+    }
+
+    to {
+        opacity: 0.3;
     }
 }
 
@@ -149,7 +230,7 @@ canvas {
     color: var(--retro-red);
 }
 
-/* CRT Scanline Effect Overlay */
+/* CRT SCANLINES */
 #game-container::after {
     content: " ";
     display: block;
@@ -158,76 +239,37 @@ canvas {
     left: 0;
     bottom: 0;
     right: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    z-index: 2;
-    background-size: 100% 2px, 3px 100%;
-    pointer-events: none;
-}
-
-/* Mobile Controls */
-#mobile-controls {
-    display: none;
-    /* Hidden, using full screen touch drag */
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    width: 100%;
-    height: 120px;
-    /* Taller area */
-    display: flex;
-    justify-content: center;
-    /* Center them since no fire btn */
-    padding: 0 20px;
-    pointer-events: auto;
-    /* Allow clicks */
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
     z-index: 10;
+    background-size: 100% 3px, 4px 100%;
+    pointer-events: none;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+    /* Vignette */
 }
 
-.control-group {
-    display: flex;
-    gap: 40px;
-    /* Wider gap between L/R */
-    align-items: center;
+/* RESULTS STATS */
+#results-stats {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    color: #ccc;
+    margin: 20px 0;
+    line-height: 1.5;
 }
 
-.touch-btn {
-    width: 90px;
-    /* Much bigger */
-    height: 90px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    border: 3px solid rgba(255, 255, 255, 0.6);
-    color: white;
-    font-size: 32px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    user-select: none;
-    touch-action: manipulation;
-    outline: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.touch-btn:active,
-.touch-btn.active {
-    background: rgba(255, 255, 255, 0.5);
-    transform: scale(0.95);
-}
-
-/* Fire btn removed */
-
-/* Hide valid controls on desktop if strictly requested, but helpful to leave for testing or touch laptops. 
-   We will inspect UserAgent in JS to hide/show or just CSS Media Query. 
-   Let's keep them visible or use media query for small height/width.
-*/
-@media (min-width: 800px) {
-    /* Optional: Hide on large screens if standard keyboard preferred */
-    /* #mobile-controls { display: none; } */
-}
-
-/* Show mobile hint on small screens */
+/* MOBILE CONTROLS (Only visible if needed or on mobile) */
 @media (max-width: 800px) {
     .mobile-hint {
         display: block !important;
     }
+}
+
+/* Leaderboard Table */
+#leaderboard-table th {
+    color: var(--retro-yellow);
+    padding: 5px;
+    border-bottom: 1px solid #555;
+}
+
+#leaderboard-table td {
+    padding: 5px;
 }

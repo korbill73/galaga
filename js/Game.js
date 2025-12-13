@@ -13,44 +13,58 @@ export default class Game {
         this.width = this.canvas.width;
         this.height = this.canvas.height;
 
-        // Internal Logical Size (Galaga Original Resolution)
-        // We render to a small offscreen canvas or just scale everything?
-        // Actually, let's keep logic in native coordinates (224x288) and use scale() on context.
+        // Logical Resolution Setup (224x288)
         this.scale = this.width / GAME_WIDTH;
         this.ctx.scale(this.scale, this.scale);
         this.ctx.imageSmoothingEnabled = false;
 
+        // Core Systems
         this.player = new Player(this);
         this.input = new InputHandler();
         this.soundManager = new SoundManager();
         this.leaderboard = new Leaderboard();
+
+        // Game Entities
         this.bullets = [];
         this.enemies = [];
         this.powerUps = [];
-        this.particles = []; // For explosions
+        this.particles = []; // Explosions
+        this.stars = [];
 
+        // Game State
         this.score = 0;
-        this.highScore = 20000; // Default high score
-
-        this.state = 'MENU'; // MENU, PLAYING, GAMEOVER
-
+        this.highScore = 20000;
+        this.lives = 3;
+        this.level = 0; // Will start at 1
+        this.state = 'MENU'; // MENU, PLAYING, GAMEOVER, VICTORY, PAUSED
         this.lastTime = 0;
 
-        // Nuclear effects
-        this.nukeFlash = 0; // Flash effect when nuke is launched
-        this.nukeExplosions = []; // Explosion animations
+        // Combo System
+        this.combo = 0;
+        this.comboTimer = 0;
+        this.comboMaxTime = 180; // 3 seconds (60fps)
+        this.comboMultiplier = 1.0;
 
-        // Boss warning
-        this.bossWarning = 0; // Warning message when boss appears
+        // Progression
+        this.MAX_LEVEL = 10; // Game Ends after clearing Level 10
 
-        // Starfield
-        this.stars = [];
-        for (let i = 0; i < 50; i++) {
+        // Visual Effects
+        this.nukeFlash = 0;
+        this.nukeExplosions = [];
+        this.bossWarning = 0;
+
+        // Init Starfield
+        this.initStars();
+    }
+
+    initStars() {
+        for (let i = 0; i < 60; i++) {
             this.stars.push({
                 x: Math.random() * GAME_WIDTH,
                 y: Math.random() * GAME_HEIGHT,
-                speed: 0.5 + Math.random() * 2,
-                color: Math.random() > 0.8 ? '#f00' : '#fff' // Some red stars like in Galaga
+                speed: 0.2 + Math.random() * 1.5,
+                color: Math.random() > 0.9 ? '#ff0055' : (Math.random() > 0.7 ? '#00f7ff' : '#ffffff'),
+                size: Math.random() > 0.9 ? 1.5 : 1
             });
         }
     }
@@ -62,346 +76,205 @@ export default class Game {
 
     async setState(newState) {
         this.state = newState;
-        const startScreen = document.getElementById('start-screen');
-        const gameOverScreen = document.getElementById('game-over-screen');
-        const scoreDisplay = document.getElementById('score-display');
-        const highScoreDisplay = document.getElementById('highscore-display');
+
+        // UI Elements
+        const screens = {
+            'MENU': document.getElementById('start-screen'),
+            'GAMEOVER': document.getElementById('game-over-screen'),
+            'VICTORY': document.getElementById('victory-screen')
+        };
+
+        // Hide all screens first
+        Object.values(screens).forEach(el => el && el.classList.add('hidden'));
 
         if (this.state === 'MENU') {
-            startScreen.classList.remove('hidden');
-            gameOverScreen.classList.add('hidden');
-
-            // Load Top 3 for Start Screen
-            this.leaderboard.getScores().then(scores => {
-                const list = document.getElementById('top-rank-list');
-                if (list) {
-                    if (scores.length === 0) {
-                        list.innerHTML = '<span style="color:#888">No records yet.</span>';
-                    } else {
-                        const top3 = scores.slice(0, 3);
-                        list.innerHTML = top3.map((s, i) =>
-                            `<div style="margin-bottom:4px;">
-                                <span style="color:${i === 0 ? '#ff0' : i === 1 ? '#ccc' : '#d48'}">${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span> 
-                                <span style="color:#fff">${s.player_name}</span> 
-                                <span style="color:#f0f; float:right;">${s.score.toLocaleString()}</span>
-                            </div>`
-                        ).join('');
-                    }
-                }
-            }).catch(e => console.error(e));
-
-        } else if (this.state === 'PLAYING') {
-            startScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
-            this.resetGame();
-        } else if (this.state === 'GAMEOVER') {
-            gameOverScreen.classList.remove('hidden');
-
-            // Display leaderboard
-            // Score > 0 이면 무조건 이름 입력 (테스트/활성화 용)
-            // 리더보드 로딩 에러가 있어도 입력창은 뜨도록 try-catch 분리
-
-            try {
-                await this.leaderboard.displayLeaderboard();
-            } catch (e) {
-                console.error("Leaderboard error:", e);
-            }
-
-            // const isHighScore = await this.leaderboard.isHighScore(this.score);
-            // Force input for any score > 0 for now
-            if (this.score > 0) {
-                setTimeout(async () => {
-                    const playerName = prompt(`GAME OVER\nScore: ${this.score}\nEnter your name to save:`, 'PLAYER');
-                    if (playerName !== null) {
-                        const name = playerName.trim() || 'PLAYER';
-                        await this.leaderboard.saveScore(name, this.score, this.level);
-                        this.soundManager.play('powerup');
-                    }
-                }, 500);
-            } else {
-                // 0 score - do nothing or show alert
-            }
-
-
-            // Check high score
-            if (this.score > this.highScore) {
-                this.highScore = this.score;
-                highScoreDisplay.innerText = this.highScore;
-            }
+            screens['MENU'].classList.remove('hidden');
+            this.loadLeaderboard();
         }
+        else if (this.state === 'PLAYING') {
+            this.resetGame();
+        }
+        else if (this.state === 'GAMEOVER') {
+            screens['GAMEOVER'].classList.remove('hidden');
+            this.handleEndGame();
+        }
+        else if (this.state === 'VICTORY') {
+            screens['VICTORY'].classList.remove('hidden');
+            this.handleEndGame(true);
+        }
+    }
+
+    async loadLeaderboard() {
+        try {
+            const scores = await this.leaderboard.getScores();
+            const list = document.getElementById('top-rank-list');
+            if (list) {
+                if (scores.length === 0) {
+                    list.innerHTML = '<span style="color:#888">No records yet.</span>';
+                } else {
+                    const top3 = scores.slice(0, 3);
+                    list.innerHTML = top3.map((s, i) =>
+                        `<div style="margin-bottom:6px; display:flex; justify-content:space-between;">
+                            <span>${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} <span style="color:#fff">${s.player_name}</span></span>
+                            <span style="color:#0ff;">${s.score.toLocaleString()}</span>
+                        </div>`
+                    ).join('');
+                }
+            }
+        } catch (e) { console.error("Leaderboard load failed", e); }
     }
 
     resetGame() {
         this.score = 0;
-        this.lives = 1; // EXTREME MODE - Only 1 life!
-        this.level = 9; // Start at level 10 (spawnWave will increment to 10)
+        this.lives = 3;
+        this.level = 0;
+        this.combo = 0;
+        this.comboMultiplier = 1.0;
+
         this.bullets = [];
         this.enemies = [];
         this.powerUps = [];
+        this.nukeExplosions = [];
         this.player = new Player(this);
-        this.waveSpawning = false; // Flag to prevent multiple wave spawns
-        document.getElementById('score-display').innerText = this.score;
-        this.updateLivesDisplay(); // Custom method needed or just reuse score board? 
-        // Let's reuse '1UP' label or add new one? For now, we assume simple logic.
+        this.waveSpawning = false;
+
+        this.updateScoreUI();
         this.spawnWave();
     }
 
-    updateLivesDisplay() {
-        // Find or create lives display
-        // The original HTML had <div class="score-label">1UP</div>
-        // Let's append lives to it or assume "1UP" means Player 1.
-        // I'll console log for now or add a small text.
-        // Actually, we can update the '1UP' text to 'LIVES: 10'
-        const label = document.querySelector('.score-label');
-        if (label) label.innerText = `LIVES: ${this.lives}`;
+    handleEndGame(isVictory = false) {
+        // Stats for Game Over / Victory
+        const statsId = isVictory ? 'victory-stats' : 'results-stats';
+        const statsEl = document.getElementById(statsId);
+        if (statsEl) {
+            statsEl.innerHTML = `
+                SCORE: <span style="color:#ff0">${this.score.toLocaleString()}</span><br>
+                LEVEL: <span style="color:#0ff">${this.level}</span><br>
+            `;
+        }
+
+        // Leaderboard & Input Logic
+        // Always allow input if score > 0
+        if (this.score > 0) {
+            const nameInputSection = document.getElementById('name-input-section');
+            if (nameInputSection) {
+                nameInputSection.style.display = 'block';
+                setTimeout(() => document.getElementById('player-name-input').focus(), 500);
+            }
+
+            // Setup Submit Handler
+            const submitBtn = document.getElementById('submit-score-btn');
+            submitBtn.onclick = async () => {
+                const nameInput = document.getElementById('player-name-input');
+                const name = nameInput.value.trim() || 'PILOT';
+                await this.leaderboard.saveScore(name, this.score, this.level);
+                nameInputSection.style.display = 'none';
+                this.loadFullLeaderboard();
+            };
+        } else {
+            this.loadFullLeaderboard();
+        }
+
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            document.getElementById('highscore-display').innerText = this.highScore;
+        }
+    }
+
+    async loadFullLeaderboard() {
+        try {
+            await this.leaderboard.displayLeaderboard();
+        } catch (e) { console.error(e); }
     }
 
     spawnWave() {
-        this.level++; // Increment level
-
-        // Update "Lives" label to show Level as well, or just log it
-        const label = document.querySelector('.score-label');
-        if (label) {
-            label.innerHTML = `LIVES: ${this.lives}<br>LEVEL: ${this.level}`;
+        if (this.level >= this.MAX_LEVEL) {
+            this.setState('VICTORY');
+            return;
         }
 
-        // Difficulty Multiplier
-        const difficulty = 1 + (this.level * 0.1);
+        this.level++;
+        this.updateScoreUI(); // Update level display
 
-        // Check if this is a BOSS LEVEL (every 10 levels)
-        const isBossLevel = (this.level % 10 === 0);
-
-        const startX = 20;
-        const startY = 40;
-        const gapX = 20;
-        const gapY = 20;
+        const difficulty = 1 + (this.level * 0.15);
+        const isBossLevel = (this.level === this.MAX_LEVEL); // Final Level is Boss Level
 
         let delayCounter = 0;
-        const delayStep = Math.max(5, 10 - this.level); // Faster entrance as levels go up
+        const delayStep = Math.max(5, 12 - this.level);
 
         const createEnemy = (x, y, type) => {
-            // Hard Cap: Prevent too many enemies (Performance optimization)
-            if (this.enemies.length >= 100) return;
-
-            // Keep within bounds
+            if (this.enemies.length >= 80) return;
             if (x < 10) x = 10;
             if (x > GAME_WIDTH - 26) x = GAME_WIDTH - 26;
 
             const enemy = new Enemy(this, x, y, type);
             enemy.delay = delayCounter++ * delayStep;
-
             this.enemies.push(enemy);
         };
 
-        // SPECIAL BOSS WAVE every 10 levels
+        // BOSS WAVE (Final Level)
         if (isBossLevel) {
-            // Display BOSS WARNING message
-            this.bossWarning = 180; // Display for 3 seconds
-            this.soundManager.play('powerup'); // Warning sound
+            this.bossWarning = 180;
+            this.soundManager.play('powerup');
 
             const centerX = GAME_WIDTH / 2;
-            const centerY = 80;
+            const centerY = 60;
 
-            // Create a KING BOSS formation - "적의 대왕"
-            // CENTER: The KING BOSS!
+            // The King
             createEnemy(centerX, centerY, 'king');
 
-            // Large boss circle with escorts
-            const bossCount = 8;
-            const radius = 50;
-            for (let i = 0; i < bossCount; i++) {
-                const angle = (i / bossCount) * Math.PI * 2;
-                const bx = centerX + Math.cos(angle) * radius;
-                const by = centerY + Math.sin(angle) * radius * 0.7;
-                createEnemy(bx, by, 'boss');
+            // Escorts
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                createEnemy(centerX + Math.cos(angle) * 50, centerY + Math.sin(angle) * 40, 'boss');
             }
-
-            // Inner circle of butterflies
-            const butterflyCount = 6;
-            const innerRadius = 30;
-            for (let i = 0; i < butterflyCount; i++) {
-                const angle = (i / butterflyCount) * Math.PI * 2;
-                const bx = centerX + Math.cos(angle) * innerRadius;
-                const by = centerY + Math.sin(angle) * innerRadius * 0.7;
-                createEnemy(bx, by, 'butterfly');
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                createEnemy(centerX + Math.cos(angle) * 80, centerY + Math.sin(angle) * 60, 'butterfly');
             }
-
-            // Add extra escorts based on level
-            const extraCount = Math.min(Math.floor(this.level / 10), 4);
-            for (let i = 0; i < extraCount; i++) {
-                createEnemy(centerX - 60 - i * 15, centerY + 30, 'butterfly');
-                createEnemy(centerX + 60 + i * 15, centerY + 30, 'butterfly');
-            }
-
-            return; // Skip normal patterns for boss level
+            return;
         }
 
-        // Calculate enemy count based on level (gradual increase)
-        // Start with fewer enemies, increase gradually
-        const baseMultiplier = Math.min(1 + (this.level - 1) * 0.15, 2.5); // Cap at 2.5x
-
-        // Pattern Selection - Many varied patterns!
-        const patterns = ['grid', 'circle', 'v-shape', 'staggered', 'star', 'triangle', 'diamond', 'house', 'spaceship', 'letter_a'];
+        // Standard Waves
+        const patterns = ['grid', 'circle', 'v-shape', 'diamond', 'helix', 'swarm'];
         const pattern = patterns[(this.level - 1) % patterns.length];
 
-        // Level scaling: Cap at 2.5x to prevent lag/overcrowding at high levels
-        // Was: 1 + (this.level - 1) * 0.3; -> 4.9x at level 14 (Too much!)
-        const levelMultiplier = Math.min(1 + (this.level - 1) * 0.1, 2.0);
+        // Dynamic scaling
+        const countMult = Math.min(1 + (this.level * 0.1), 1.8);
+        const startY = 40;
+        const centerX = GAME_WIDTH / 2;
 
         if (pattern === 'grid') {
-            // Classic Grid - Scales with level (20% per level)
-            // Level 1: ~100, Level 2: ~120, Level 3: ~144, etc.
-            const bossCount = Math.floor((10 + Math.floor(this.level / 10)) * levelMultiplier);
-            const butterflyCount = Math.floor((15 + Math.floor(this.level / 8)) * levelMultiplier);
-            const beePerRow = Math.floor((25 + Math.floor(this.level / 6)) * levelMultiplier);
-
-            for (let i = 0; i < bossCount; i++) createEnemy(startX + 40 + i * gapX, startY, 'boss');
-            for (let i = 0; i < butterflyCount; i++) createEnemy(startX + i * gapX + 20, startY + gapY, 'butterfly');
-            for (let row = 0; row < 2; row++) {
-                for (let i = 0; i < beePerRow; i++) createEnemy(startX + 10 + i * gapX, startY + gapY * 2 + row * gapY, 'bee');
+            const rows = 3 + Math.floor(this.level / 3);
+            const cols = 6 + Math.floor(this.level / 4);
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const type = r === 0 ? 'boss' : (r === 1 ? 'butterfly' : 'bee');
+                    createEnemy(30 + c * 25, startY + r * 20, type);
+                }
             }
         }
         else if (pattern === 'circle') {
-            const centerX = GAME_WIDTH / 2;
-            const centerY = 100;
-            const radius = 60;
-            // Scales with level (20% per level)
-            const count = Math.floor((30 + Math.floor(this.level * 1.5)) * levelMultiplier);
-
+            const count = 20 * countMult;
             for (let i = 0; i < count; i++) {
                 const angle = (i / count) * Math.PI * 2;
-                const ex = centerX + Math.cos(angle) * radius;
-                const ey = centerY + Math.sin(angle) * radius * 0.8; // Ellipse
-                const type = i % 5 === 0 ? 'boss' : (i % 2 === 0 ? 'butterfly' : 'bee');
-                createEnemy(ex, ey, type);
+                const r = 60;
+                createEnemy(centerX + Math.cos(angle) * r, 100 + Math.sin(angle) * r * 0.7, i % 5 === 0 ? 'boss' : 'butterfly');
             }
         }
         else if (pattern === 'v-shape') {
-            const centerX = GAME_WIDTH / 2;
-            // Scales with level (20% per level)
-            const rows = Math.floor((10 + Math.floor(this.level / 4)) * levelMultiplier);
-
-            for (let r = 0; r < rows; r++) {
-                // Left wing
-                createEnemy(centerX - r * 15, startY + r * 15, r === 0 ? 'boss' : 'bee');
-                // Right wing
-                if (r > 0) createEnemy(centerX + r * 15, startY + r * 15, 'bee');
-            }
-            // Inner logic
-            for (let r = 1; r < rows - 1; r++) {
-                createEnemy(centerX - r * 15 + 10, startY + r * 15 + 10, 'butterfly');
-                createEnemy(centerX + r * 15 - 10, startY + r * 15 + 10, 'butterfly');
+            const rows = 12 * countMult;
+            for (let i = 0; i < rows; i++) {
+                createEnemy(centerX - i * 10, startY + i * 10, 'bee');
+                createEnemy(centerX + i * 10, startY + i * 10, 'bee');
+                if (i % 3 === 0) createEnemy(centerX, startY + i * 15, 'boss');
             }
         }
-        else if (pattern === 'staggered') {
-            // Scales with level (20% per level)
-            const rows = Math.floor((8 + Math.floor(this.level / 5)) * levelMultiplier);
-            const cols = Math.floor((8 + Math.floor(this.level / 4)) * levelMultiplier);
-            for (let r = 0; r < rows; r++) {
-                const offset = (r % 2) * 15;
-                for (let c = 0; c < cols; c++) {
-                    createEnemy(30 + c * 25 + offset, 40 + r * 20, r === 0 ? 'boss' : 'bee');
-                }
-            }
-        }
-        else if (pattern === 'star') {
-            // Star pattern - 별 모양
-            const centerX = GAME_WIDTH / 2;
-            const centerY = 80;
-            const points = 10;
-            const outerRadius = 50;
-            const innerRadius = 25;
-
-            for (let i = 0; i < points; i++) {
-                const angle = (i / points) * Math.PI * 2 - Math.PI / 2;
-                const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                const x = centerX + Math.cos(angle) * radius;
-                const y = centerY + Math.sin(angle) * radius * 0.7;
-                createEnemy(x, y, i % 3 === 0 ? 'boss' : 'butterfly');
-            }
-        }
-        else if (pattern === 'triangle') {
-            // Triangle pattern - 삼각형
-            const centerX = GAME_WIDTH / 2;
-            const rows = Math.floor(8 * levelMultiplier);
-
-            for (let r = 0; r < rows; r++) {
-                const count = r + 1;
-                for (let i = 0; i < count; i++) {
-                    const x = centerX - (count - 1) * 10 + i * 20;
-                    const y = 50 + r * 18;
-                    createEnemy(x, y, r === 0 ? 'boss' : 'bee');
-                }
-            }
-        }
-        else if (pattern === 'diamond') {
-            // Diamond pattern - 다이아몬드/사각형
-            const centerX = GAME_WIDTH / 2;
-            const centerY = 100;
-            const size = 40;
-
-            // Top
-            for (let i = 0; i < 5; i++) createEnemy(centerX - 20 + i * 10, centerY - size, 'boss');
-            // Sides
-            for (let i = 0; i < 3; i++) {
-                createEnemy(centerX - size + i * 10, centerY - 20 + i * 15, 'butterfly');
-                createEnemy(centerX + size - i * 10, centerY - 20 + i * 15, 'butterfly');
-            }
-            // Bottom
-            for (let i = 0; i < 5; i++) createEnemy(centerX - 20 + i * 10, centerY + size, 'bee');
-        }
-        else if (pattern === 'house') {
-            // House pattern - 집 모양
-            const centerX = GAME_WIDTH / 2;
-            const baseY = 120;
-
-            //지붕 (삼각형)
-            for (let r = 0; r < 3; r++) {
-                const count = 3 - r;
-                for (let i = 0; i < count; i++) {
-                    createEnemy(centerX - count * 8 + i * 16, baseY - 40 + r * 12, 'boss');
-                }
-            }
-            // 벽 (사각형)
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 5; c++) {
-                    createEnemy(centerX - 40 + c * 20, baseY + r * 18, 'bee');
-                }
-            }
-        }
-        else if (pattern === 'spaceship') {
-            // Spaceship pattern - 우주선 모양
-            const centerX = GAME_WIDTH / 2;
-            const baseY = 80;
-
-            // Nose
-            createEnemy(centerX, baseY, 'boss');
-            // Wings
-            for (let i = 1; i <= 3; i++) {
-                createEnemy(centerX - i * 15, baseY + i * 12, 'butterfly');
-                createEnemy(centerX + i * 15, baseY + i * 12, 'butterfly');
-            }
-            // Body
-            for (let r = 0; r < 4; r++) {
-                for (let c = 0; c < 3; c++) {
-                    createEnemy(centerX - 15 + c * 15, baseY + 40 + r * 15, 'bee');
-                }
-            }
-        }
-        else if (pattern === 'letter_a') {
-            // Letter A pattern - 알파벳 A
-            const centerX = GAME_WIDTH / 2;
-            const baseY = 60;
-
-            // Vertical lines
-            for (let i = 0; i < 5; i++) {
-                createEnemy(centerX - 25, baseY + i * 15, 'bee');
-                createEnemy(centerX + 25, baseY + i * 15, 'bee');
-            }
-            // Top and middle horizontal
-            for (let i = 0; i < 3; i++) {
-                createEnemy(centerX - 15 + i * 15, baseY, 'boss');
-                createEnemy(centerX - 15 + i * 15, baseY + 30, 'butterfly');
+        else {
+            // Random scatter for helix/swarm/diamond fallback
+            const count = 30 * countMult;
+            for (let i = 0; i < count; i++) {
+                createEnemy(20 + Math.random() * (GAME_WIDTH - 40), -50 - Math.random() * 200, Math.random() > 0.8 ? 'boss' : 'bee');
             }
         }
     }
@@ -412,354 +285,344 @@ export default class Game {
 
         this.update(deltaTime);
         this.draw();
-
         requestAnimationFrame(this.gameLoop.bind(this));
     }
 
     update(deltaTime) {
-        // Background Stars
+        // Starfield
         this.stars.forEach(star => {
             star.y += star.speed;
             if (star.y > GAME_HEIGHT) star.y = 0;
         });
 
         if (this.state === 'MENU') {
-            if (this.input.isDown('Space')) {
+            if (this.input.isDown('Space') || this.input.isDown('Enter')) {
                 this.soundManager.play('menu_select');
                 this.setState('PLAYING');
             }
             return;
         }
 
-        if (this.state === 'GAMEOVER') {
-            // Check if name input is visible and focused
-            const nameInputSection = document.getElementById('name-input-section');
+        if (this.state === 'GAMEOVER' || this.state === 'VICTORY') {
             const nameInput = document.getElementById('player-name-input');
-            const isInputActive = nameInputSection &&
-                nameInputSection.style.display !== 'none' &&
-                document.activeElement === nameInput;
+            const isInputActive = document.activeElement === nameInput;
 
-            // Only restart if name input is not active
-            if (!isInputActive && (this.input.isDown('Enter') || this.input.isDown('Space'))) {
+            if (!isInputActive && (this.input.isDown('Space') || this.input.isDown('Enter'))) {
                 this.setState('MENU');
             }
             return;
         }
 
-        // Gameplay Update
+        // --- PLAYING STATE ---
+
+        // Combo Logic
+        if (this.combo > 0) {
+            this.comboTimer--;
+            if (this.comboTimer <= 0) {
+                this.resetCombo();
+            }
+        }
+        this.updateComboUI();
+
+        // Player & Entities
         this.player.update(this.input);
 
-        // Bullets
-        this.bullets.forEach((bullet, index) => {
-            bullet.update();
-            if (bullet.markedForDeletion) {
-                this.bullets.splice(index, 1);
+        this.bullets.forEach((b, i) => {
+            b.update();
+            if (b.markedForDeletion) this.bullets.splice(i, 1);
+        });
+
+        // Boss Logic Check
+        let bossExists = false;
+        let bossHP = 0;
+        let bossMaxHP = 1;
+
+        this.enemies.forEach((e, i) => {
+            e.update();
+            if (e.markedForDeletion) this.enemies.splice(i, 1);
+            else if (e.type === 'king') {
+                bossExists = true;
+                bossHP = e.hp;
+                bossMaxHP = e.maxHp;
             }
         });
 
-        // Enemies
-        this.enemies.forEach((enemy, index) => {
-            enemy.update();
-            if (enemy.markedForDeletion) {
-                this.enemies.splice(index, 1);
-            }
+        // Update Boss UI
+        this.updateBossUI(bossExists, bossHP, bossMaxHP);
+
+        this.powerUps.forEach((p, i) => {
+            p.update();
+            if (p.markedForDeletion) this.powerUps.splice(i, 1);
         });
 
-        // PowerUps
-        this.powerUps.forEach((powerUp, index) => {
-            powerUp.update();
-            if (powerUp.markedForDeletion) {
-                this.powerUps.splice(index, 1);
-            }
-        });
-
-        // Nuclear Flash effect
+        // FX
         if (this.nukeFlash > 0) this.nukeFlash--;
-
-        // Boss Warning
         if (this.bossWarning > 0) this.bossWarning--;
 
-        // Nuclear Explosions animations
-        this.nukeExplosions.forEach((exp, index) => {
+        this.nukeExplosions.forEach((exp, i) => {
             if (exp.growing) {
                 exp.radius += 3;
-                if (exp.radius >= exp.maxRadius) {
-                    exp.growing = false;
-                }
+                if (exp.radius >= exp.maxRadius) exp.growing = false;
             } else {
                 exp.alpha -= 0.05;
-                if (exp.alpha <= 0) {
-                    this.nukeExplosions.splice(index, 1);
-                }
+                if (exp.alpha <= 0) this.nukeExplosions.splice(i, 1);
             }
         });
 
+        // Wave Cycle
         if (this.enemies.length === 0 && !this.waveSpawning) {
             this.waveSpawning = true;
             setTimeout(() => {
                 this.spawnWave();
                 this.waveSpawning = false;
-            }, 1000);
+            }, 1500);
         }
 
         this.checkCollisions();
     }
 
+    resetCombo() {
+        this.combo = 0;
+        this.comboMultiplier = 1.0;
+        this.updateComboUI();
+    }
+
+    addCombo() {
+        this.combo++;
+        this.comboTimer = this.comboMaxTime;
+        // Multiplier caps at 5x
+        this.comboMultiplier = Math.min(1.0 + (this.combo * 0.1), 5.0);
+        this.updateComboUI();
+    }
+
+    updateComboUI() {
+        const container = document.getElementById('combo-container');
+        const value = document.getElementById('combo-value');
+        if (!container || !value) return;
+
+        if (this.combo > 1) {
+            container.style.opacity = '1';
+            // Shake effect if combo is high
+            const shake = this.combo > 10 ? `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)` : 'none';
+            container.style.transform = shake; // Note: this might override CSS positioning if not careful, better to use margin or inner span
+
+            value.innerText = `x${this.comboMultiplier.toFixed(1)} (${this.combo})`;
+
+            // Color shift based on combo
+            if (this.combo > 20) value.style.color = '#ff0055'; // Red
+            else if (this.combo > 10) value.style.color = '#f5d300'; // Yellow
+            else value.style.color = '#00f7ff'; // Blue
+        } else {
+            container.style.opacity = '0';
+        }
+    }
+
+    updateScoreUI() {
+        const scoreEl = document.getElementById('score-display');
+        const livesEl = document.querySelector('.score-label'); // Reuse 1UP label for Lives/Level
+        if (scoreEl) scoreEl.innerText = Math.floor(this.score).toLocaleString();
+        if (livesEl) livesEl.innerHTML = `LIVES: ${this.lives} <span style="margin-left:10px; color:#aaa;">LV: ${this.level}</span>`;
+    }
+
+    updateBossUI(active, hp, maxHp) {
+        const hud = document.getElementById('boss-hud');
+        if (!hud) return;
+
+        if (active) {
+            hud.style.display = 'flex';
+            const fill = document.getElementById('boss-hp-fill');
+            if (fill) {
+                const pct = Math.max(0, (hp / maxHp) * 100);
+                fill.style.width = `${pct}%`;
+            }
+        } else {
+            hud.style.display = 'none';
+        }
+    }
+
     checkCollisions() {
-        // Optimization: Filter bullets once
         const playerBullets = this.bullets.filter(b => !b.isEnemy);
 
-        // Player Bullets hitting Enemies
-        // O(N*M) loop here might be slow if 100x100.
-        // Simple optimization: traditional for-loops are faster than forEach.
-        for (let i = 0; i < playerBullets.length; i++) {
-            const bullet = playerBullets[i];
-            if (bullet.markedForDeletion) continue;
+        // Player Bullets vs Enemies
+        playerBullets.forEach(bullet => {
+            if (bullet.markedForDeletion) return;
 
-            const bulletRect = { left: bullet.x, right: bullet.x + bullet.width, top: bullet.y, bottom: bullet.y + bullet.height };
+            const bRect = { left: bullet.x, right: bullet.x + bullet.width, top: bullet.y, bottom: bullet.y + bullet.height };
 
-            for (let j = 0; j < this.enemies.length; j++) {
-                const enemy = this.enemies[j];
-                // Don't hit enemies that are invisible (delay) or off-screen (y < 0)
+            for (const enemy of this.enemies) {
                 if (enemy.markedForDeletion || enemy.delay > 0 || enemy.y < 0) continue;
 
-                const enemyRect = { left: enemy.x, right: enemy.x + enemy.width, top: enemy.y, bottom: enemy.y + enemy.height };
+                const eRect = { left: enemy.x, right: enemy.x + enemy.width, top: enemy.y, bottom: enemy.y + enemy.height };
 
-                if (rectIntersect(bulletRect, enemyRect)) {
-                    // HP System for king boss
+                if (rectIntersect(bRect, eRect)) {
+                    // Hit logic
                     if (enemy.type === 'king') {
-                        enemy.hp--;
-                        this.score += 50; // Partial score for hitting king
-                        this.soundManager.play('shoot'); // Hit sound
-
+                        enemy.hp -= 10; // Bullet damage
+                        this.score += 10 * this.comboMultiplier;
+                        this.soundManager.play('shoot');
                         if (enemy.hp <= 0) {
-                            enemy.markedForDeletion = true;
-                            this.score += 500; // Bonus for killing king
-                            this.soundManager.play('explosion');
-                            // Create explosion particles
-                            this.createEnemyExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                            this.killEnemy(enemy);
+                            this.score += 5000 * this.comboMultiplier; // Boss Bonus
                         }
                     } else {
-                        enemy.markedForDeletion = true;
-                        this.score += 100;
-                        this.soundManager.play('explosion');
-                        // Create small explosion particles
-                        this.createEnemyExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                        this.killEnemy(enemy);
+                        this.score += 100 * this.comboMultiplier;
                     }
 
-                    // Piercing Logic
-                    if (bullet.pierce) {
+                    // Bullet management
+                    if (bullet.pierce > 0) {
                         bullet.pierce--;
                         if (bullet.pierce <= 0) bullet.markedForDeletion = true;
                     } else {
-                        bullet.pierce = 0; // Default safety
                         bullet.markedForDeletion = true;
                     }
 
-                    document.getElementById('score-display').innerText = this.score;
-
-                    // Item drop only when enemy is actually killed
-                    if (enemy.markedForDeletion) {
-                        // Item drop rate increased by 30% (3.5% → 4.55%)
-                        if (Math.random() < 0.0455) {
-                            // Add life and nuke to drop types!
-                            const types = ['spread', 'missile', 'guided', 'shield', 'nuke', 'life'];
-                            const type = types[Math.floor(Math.random() * types.length)];
-                            this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
-                        }
-                        // Rare Super Bonus (0.25% chance - special 1,000,000 point bonus)
-                        else if (Math.random() < 0.0025) {
-                            this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, 'super_bonus'));
-                        }
-                    }
-
-                    // Don't break if piercing, continue to check other enemies? 
-                    // Actually, if we hit one, we shouldn't hit the *same* one again.
-                    // But hitting multiple in one frame is rare unless overlapping.
-                    // If piercing, we just don't delete bullet.
+                    this.updateScoreUI();
                     if (bullet.markedForDeletion) break;
                 }
             }
-        }
+        });
 
         // Player vs PowerUps
-        for (let i = 0; i < this.powerUps.length; i++) {
-            const powerUp = this.powerUps[i];
-            const powerUpRect = { left: powerUp.x, right: powerUp.x + powerUp.width, top: powerUp.y, bottom: powerUp.y + powerUp.height };
-            const playerRect = { left: this.player.x, right: this.player.x + this.player.width, top: this.player.y, bottom: this.player.y + this.player.height };
-
-            if (rectIntersect(powerUpRect, playerRect)) {
-                powerUp.markedForDeletion = true;
+        const pRect = { left: this.player.x, right: this.player.x + this.player.width, top: this.player.y, bottom: this.player.y + this.player.height };
+        this.powerUps.forEach(p => {
+            const puRect = { left: p.x, right: p.x + p.width, top: p.y, bottom: p.y + p.height };
+            if (rectIntersect(pRect, puRect)) {
+                p.markedForDeletion = true;
                 this.soundManager.play('powerup');
-
-                if (powerUp.type === 'bonus') {
-                    this.score += 2000;
-                }
-                else if (powerUp.type === 'super_bonus') {
-                    this.score += 1000000; // 1 Million Points
-                }
-                else if (powerUp.type === 'nuke') {
-                    this.player.nukesLeft = Math.min(this.player.nukesLeft + 1, 5); // Max 5 nukes
-                    this.score += 1000;
-                }
-                else if (powerUp.type === 'life') {
-                    this.lives++; // Add one life!
-                    this.updateLivesDisplay();
-                    this.score += 5000;
-                }
-                else {
-                    this.player.upgradeWeapon(powerUp.type);
-                    this.score += 500;
-                }
-                document.getElementById('score-display').innerText = this.score;
+                this.applyPowerUp(p.type);
             }
-        }
+        });
 
-        // Enemy Collision (Body)
-        if (!this.player.isDead) { // Don't check if already dead
-            const playerRect = { left: this.player.x + 4, right: this.player.x + this.player.width - 4, top: this.player.y + 4, bottom: this.player.y + this.player.height - 4 };
-
-            for (let i = 0; i < this.enemies.length; i++) {
-                const enemy = this.enemies[i];
+        // Enemies vs Player
+        if (!this.player.isDead) {
+            const pHitBox = { left: this.player.x + 4, right: this.player.x + this.player.width - 4, top: this.player.y + 4, bottom: this.player.y + this.player.height - 4 };
+            for (const enemy of this.enemies) {
                 if (enemy.delay > 0) continue;
+                const eRect = { left: enemy.x + 2, right: enemy.x + enemy.width - 2, top: enemy.y + 2, bottom: enemy.y + enemy.height - 2 };
 
-                const enemyRect = { left: enemy.x + 2, right: enemy.x + enemy.width - 2, top: enemy.y + 2, bottom: enemy.y + enemy.height - 2 };
-                if (rectIntersect(playerRect, enemyRect)) {
+                if (rectIntersect(pHitBox, eRect)) {
                     if (this.player.shieldTimer > 0) {
-                        // Shield hit
-                        enemy.markedForDeletion = true;
-                        this.soundManager.play('explosion');
+                        this.killEnemy(enemy); // Shield kills enemy
                     } else {
                         this.handlePlayerDeath();
                     }
-                    break;
                 }
             }
         }
     }
 
+    killEnemy(enemy) {
+        enemy.markedForDeletion = true;
+        this.addCombo();
+        this.createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+        this.soundManager.play('explosion');
+
+        // Item Drop (Increased chance with combo)
+        const dropChance = 0.05 + (this.combo * 0.001); // 5% base + 0.1% per combo
+        if (Math.random() < dropChance) {
+            const types = ['spread', 'missile', 'guided', 'shield', 'nuke', 'life'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            this.powerUps.push(new PowerUp(this, enemy.x, enemy.y, type));
+        }
+    }
+
+    createExplosion(x, y) {
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1 + Math.random() * 3;
+            this.particles.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 30, maxLife: 30,
+                color: '#ffaa00'
+            });
+        }
+    }
+
+    applyPowerUp(type) {
+        if (type === 'bonus') this.score += 5000;
+        else if (type === 'super_bonus') this.score += 500000;
+        else if (type === 'life') {
+            this.lives++;
+            this.score += 1000;
+        }
+        else if (type === 'nuke') {
+            this.player.nukesLeft = Math.min(this.player.nukesLeft + 1, 5);
+            this.score += 1000;
+        }
+        else {
+            this.player.upgradeWeapon(type);
+            this.score += 500;
+        }
+        this.updateScoreUI();
+    }
+
     handlePlayerDeath() {
         this.lives--;
-        this.updateLivesDisplay();
+        this.resetCombo();
         this.soundManager.play('explosion');
+        this.updateScoreUI();
 
         if (this.lives <= 0) {
             this.player.isDead = true;
             this.setState('GAMEOVER');
         } else {
-            // Respawn logic
             this.bullets = [];
-            this.player.x = GAME_WIDTH / 2 - this.player.width / 2;
-            this.player.y = GAME_HEIGHT - 40;
-
-            // Grant Shield on Respawn
-            this.player.shieldTimer = 300; // 5 seconds of safety
+            this.nukeExplosions = []; // Clear visual clutter
+            this.player.resetPosition();
+            this.player.shieldTimer = 180; // 3 sec shield
         }
     }
 
     draw() {
-        // Clear logic canvas
-        this.ctx.fillStyle = '#000';
-        this.ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        // Clear
+        this.ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-        // Draw Stars
-        this.stars.forEach(star => {
-            this.ctx.fillStyle = star.color;
-            if (star.color === '#f00') this.ctx.globalAlpha = 0.5;
-            this.ctx.fillRect(star.x, star.y, 1, 1);
-            this.ctx.globalAlpha = 1.0;
+        // Stars
+        this.stars.forEach(s => {
+            this.ctx.fillStyle = s.color;
+            this.ctx.fillRect(s.x, s.y, s.size, s.size);
         });
 
-        if (this.state === 'PLAYING' || this.state === 'GAMEOVER') {
+        if (this.state === 'PLAYING' || this.state === 'GAMEOVER' || this.state === 'VICTORY') {
+            this.powerUps.forEach(p => p.draw());
+            this.enemies.forEach(e => e.draw());
             this.player.draw();
             this.bullets.forEach(b => b.draw());
-            this.enemies.forEach(e => e.draw());
-            this.powerUps.forEach(p => p.draw());
 
-            // Draw nuclear explosions
-            this.nukeExplosions.forEach(exp => {
-                this.ctx.save();
-                // Outer blast wave
-                const gradient = this.ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, exp.radius);
-                gradient.addColorStop(0, `rgba(255, 255, 200, ${exp.alpha * 0.8})`);
-                gradient.addColorStop(0.3, `rgba(255, 150, 0, ${exp.alpha * 0.6})`);
-                gradient.addColorStop(0.6, `rgba(255, 50, 0, ${exp.alpha * 0.4})`);
-                gradient.addColorStop(1, `rgba(100, 0, 0, 0)`);
-
-                this.ctx.fillStyle = gradient;
-                this.ctx.beginPath();
-                this.ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI * 2);
-                this.ctx.fill();
-
-                // Inner core
-                this.ctx.fillStyle = `rgba(255, 255, 255, ${exp.alpha})`;
-                this.ctx.beginPath();
-                this.ctx.arc(exp.x, exp.y, exp.radius * 0.3, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.restore();
+            // Particles
+            this.particles.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+                if (p.life <= 0) {
+                    this.particles.splice(i, 1);
+                } else {
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.globalAlpha = p.life / p.maxLife;
+                    this.ctx.fillRect(p.x, p.y, 2, 2);
+                    this.ctx.globalAlpha = 1.0;
+                }
             });
 
-            // Nuclear flash effect (screen-wide)
+            // Nuke Overlay
             if (this.nukeFlash > 0) {
-                this.ctx.save();
-                const flashAlpha = this.nukeFlash / 60;
-                this.ctx.fillStyle = `rgba(255, 255, 200, ${flashAlpha * 0.5})`;
+                this.ctx.fillStyle = `rgba(255, 255, 200, ${this.nukeFlash / 60})`;
                 this.ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                this.ctx.restore();
             }
 
-            // Boss Warning Message - "적의 대왕 출현!"
-            if (this.bossWarning > 0) {
-                this.ctx.save();
-                const warningAlpha = Math.min(this.bossWarning / 60, 1);
-                const pulse = Math.sin(Date.now() / 100) * 0.3 + 0.7;
-
-                // Background flash
-                this.ctx.fillStyle = `rgba(255, 0, 0, ${warningAlpha * 0.3 * pulse})`;
+            // Boss Warning Overlay
+            if (this.bossWarning > 0 && (Math.floor(Date.now() / 200) % 2 === 0)) {
+                this.ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
                 this.ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-                // Warning text
+                // Text is handled by DOM or we can draw it
+                this.ctx.fillStyle = 'yellow';
+                this.ctx.font = '20px "Press Start 2P"';
                 this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle';
-
-                // Shadow effect
-                this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-                this.ctx.shadowBlur = 10;
-                this.ctx.shadowOffsetX = 3;
-                this.ctx.shadowOffsetY = 3;
-
-                // Main text - "적의 대왕!"
-                this.ctx.font = 'bold 32px Arial';
-                this.ctx.fillStyle = `rgba(255, 255, 0, ${warningAlpha})`;
-                this.ctx.strokeStyle = `rgba(255, 0, 0, ${warningAlpha})`;
-                this.ctx.lineWidth = 3;
-                this.ctx.strokeText('적의 대왕!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20);
-                this.ctx.fillText('적의 대왕!', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20);
-
-                // Sub text - "WARNING!"
-                this.ctx.font = 'bold 20px Arial';
-                this.ctx.fillStyle = `rgba(255, 100, 100, ${warningAlpha * pulse})`;
-                this.ctx.fillText('BOSS INCOMING!', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 15);
-
-                this.ctx.restore();
+                this.ctx.fillText('WARNING', GAME_WIDTH / 2, GAME_HEIGHT / 2);
             }
-        }
-    }
-
-    createEnemyExplosion(x, y) {
-        // Create small explosion particles when enemy dies
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const speed = 2 + Math.random() * 2;
-            this.particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 30,
-                maxLife: 30,
-                color: ['#ff0', '#f80', '#f00'][Math.floor(Math.random() * 3)]
-            });
         }
     }
 }
