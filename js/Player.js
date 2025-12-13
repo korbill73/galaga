@@ -1,4 +1,3 @@
-
 import Bullet from './Bullet.js';
 import { GAME_WIDTH, GAME_HEIGHT } from './utils.js';
 
@@ -9,12 +8,12 @@ export default class Player {
         this.height = 36;
         this.resetPosition();
 
-        this.speed = 3;
-        this.maxBullets = 10;
+        this.speed = 4; // Faster
+        this.maxBullets = 20; // Flood
         this.bullets = [];
         this.isDead = false;
 
-        this.weaponType = 'default'; // default, spread, missile, guided
+        this.weaponType = 'default';
         this.weaponLevel = 1;
 
         // Load Image
@@ -23,11 +22,11 @@ export default class Player {
 
         this.shootTimer = 0;
 
-        // PowerUp Timers
+        // Timers
         this.shieldTimer = 0;
         this.weaponTimer = 0;
 
-        // Nuclear Missiles
+        // Nuclear
         this.nukesLeft = 3;
         this.nukeLaunched = false;
     }
@@ -63,13 +62,14 @@ export default class Player {
         if (this.x > GAME_WIDTH - this.width) this.x = GAME_WIDTH - this.width;
 
         // Shooting
+        // Rapid fire logic (200ms -> ~5 frames @ 60fps)
+        if (this.shootTimer > 0) this.shootTimer--;
         if (this.shootTimer <= 0) {
             this.shoot();
-            this.shootTimer = 5.08; // ~12 shots/sec
+            this.shootTimer = 4; // 15 shots/sec
         }
-        if (this.shootTimer > 0) this.shootTimer--;
 
-        // Nuclear Missile Launch (N key)
+        // Nuke
         if (input.isDown('KeyN') && this.nukesLeft > 0 && !this.nukeLaunched) {
             this.launchNuke();
             this.nukeLaunched = true;
@@ -92,11 +92,10 @@ export default class Player {
             this.weaponLevel = 1;
         }
         if (this.weaponLevel > 3) this.weaponLevel = 3;
-        this.weaponTimer = 900; // 15 seconds (Extended duration)
+        this.weaponTimer = 900;
     }
 
     shoot() {
-        // Sound is handled by Game logic usually, but here we can play it
         if (this.game.soundManager) this.game.soundManager.play('shoot');
 
         const bulletX = this.x + this.width / 2 - 2;
@@ -123,7 +122,6 @@ export default class Player {
             }
         }
         else {
-            // Default
             this.game.bullets.push(new Bullet(this.game, bulletX, bulletY, false, 'default'));
             if (this.weaponLevel >= 2) {
                 this.game.bullets.push(new Bullet(this.game, bulletX - 6, bulletY, false, 'default'));
@@ -140,17 +138,10 @@ export default class Player {
         this.game.soundManager.play('explosion');
         this.game.nukeFlash = 60;
 
-        // Destroy enemies
-        // We iterate backwards or just copy the list because killEnemy modifies the array?
-        // killEnemy marks for deletion, it doesn't splice immediately (splice happens in Game.update)
-        // So passing the reference is safe.
-
-        // However, we should filter enemies that are active
         this.game.enemies.forEach(enemy => {
             if (!enemy.markedForDeletion && enemy.delay <= 0) {
-                // Determine if Boss - Bosses take damage instead of instant kill?
                 if (enemy.type === 'king') {
-                    enemy.hp -= 500; // Nuke deals massive damage to boss
+                    enemy.hp -= 500;
                     if (enemy.hp <= 0) this.game.killEnemy(enemy);
                 } else {
                     this.game.killEnemy(enemy);
@@ -158,8 +149,6 @@ export default class Player {
                 this.createNukeExplosion(enemy.x, enemy.y);
             }
         });
-
-        // Update UI
         this.game.updateScoreUI();
     }
 
@@ -189,12 +178,7 @@ export default class Player {
             ctx.fillRect(this.x, this.y, this.width, this.height);
         }
 
-        // Shield
-        if (this.shieldTimer > 0) {
-            this.drawShield(ctx);
-        }
-
-        // Nuke Button UI (Bottom Right)
+        if (this.shieldTimer > 0) this.drawShield(ctx);
         this.drawNukeUI(ctx);
     }
 
@@ -204,9 +188,8 @@ export default class Player {
         const centerY = this.y + this.height / 2;
         const radius = this.width / 1.5;
         const time = Date.now() / 1000;
-
-        // Shield Glow
         const hue = (time * 100) % 360;
+
         ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
         ctx.lineWidth = 3;
         ctx.beginPath();
