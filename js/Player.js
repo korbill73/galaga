@@ -8,7 +8,7 @@ export default class Player {
         this.height = 36;
         this.resetPosition();
 
-        this.speed = 4; // Faster
+        this.speed = 8; // Faster (Doubled)
         this.maxBullets = 20; // Flood
         this.bullets = [];
         this.isDead = false;
@@ -18,7 +18,7 @@ export default class Player {
 
         // Load Image
         this.image = new Image();
-        this.image.src = 'assets/player.png';
+        this.image.src = 'assets/player_ultimate.png';
 
         this.shootTimer = 0;
 

@@ -53,6 +53,10 @@ export default class Game {
         this.nukeExplosions = [];
         this.bossWarning = 0;
 
+        // Background
+        this.bgImage = new Image();
+        this.bgImage.src = 'assets/bg_nebula_ultimate.png';
+
         // Init Starfield
         this.initStars();
     }
@@ -584,10 +588,14 @@ export default class Game {
     }
 
     draw() {
-        // Clear
-        this.ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        // Clear & Draw Background
+        if (this.bgImage && this.bgImage.complete) {
+            this.ctx.drawImage(this.bgImage, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+        } else {
+            this.ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        }
 
-        // Stars
+        // Stars (Overlay for depth)
         this.stars.forEach(s => {
             this.ctx.fillStyle = s.color;
             this.ctx.fillRect(s.x, s.y, s.size, s.size);
