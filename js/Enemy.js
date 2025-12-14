@@ -234,10 +234,10 @@ export default class Enemy {
                 this.y = -30;
                 // Respawn at random x or center? User said "center"
                 // "화면 외 가운데에서 빠르게 출현" -> slightly randomized center
-                this.x = (this.game.width / 2) + (Math.random() * 100 - 50);
+                this.x = (this.game.width / 2) + (Math.random() * 40 - 20);
                 this.state = 'dive';
 
-                // Increase speed on re-entry?
+                // Increase speed on re-entry
                 this.speedMult *= 1.1;
             }
         }
