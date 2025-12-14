@@ -337,15 +337,18 @@ export default class Game {
         let bossHP = 0;
         let bossMaxHP = 1;
 
-        this.enemies.forEach((e, i) => {
+        // Iterate backwards to safely splice
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const e = this.enemies[i];
             e.update();
-            if (e.markedForDeletion) this.enemies.splice(i, 1);
-            else if (e.type === 'king') {
+            if (e.markedForDeletion) {
+                this.enemies.splice(i, 1);
+            } else if (e.type === 'king') {
                 bossExists = true;
                 bossHP = e.hp;
                 bossMaxHP = e.maxHp;
             }
-        });
+        }
 
         // Update Boss UI
         this.updateBossUI(bossExists, bossHP, bossMaxHP);

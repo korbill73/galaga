@@ -234,12 +234,21 @@ export default class Enemy {
                 this.y = -30;
                 // Respawn at random x or center? User said "center"
                 // "화면 외 가운데에서 빠르게 출현" -> slightly randomized center
-                this.x = (this.game.width / 2) + (Math.random() * 40 - 20);
+                // Narrower center range: 50% of screen width, centered
+                const range = 50;
+                this.x = (this.game.width / 2) - (range / 2) + Math.random() * range;
                 this.state = 'dive';
 
                 // Increase speed on re-entry
-                this.speedMult *= 1.1;
+                // this.speedMult *= 1.1;
             }
+        }
+
+        // FAILSAFE: If enemy somehow falls way below screen (drifted or skipped), force reset
+        if (this.y > this.game.height + 100) {
+            this.y = -50;
+            this.x = this.game.width / 2;
+            this.state = 'dive';
         }
     }
 
