@@ -18,7 +18,7 @@ export default class Player {
 
         // Load Image
         this.image = new Image();
-        this.image.src = 'assets/player_ultimate.png';
+        this.image.src = 'assets/player_ultimate_v2.png';
 
         this.shootTimer = 0;
 
