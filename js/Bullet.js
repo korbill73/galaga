@@ -3,7 +3,7 @@ export default class Bullet {
         this.game = game;
         this.x = x;
         this.y = y;
-        this.width = 4;
+        this.width = 2;
         this.height = 10;
         this.isEnemy = isEnemy;
         this.type = type;

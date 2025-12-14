@@ -220,15 +220,25 @@ export default class Enemy {
             this.y += diveSpeed;
             this.x += Math.sin(this.y / 20) * (3 * this.speedMult);
 
-            // X Boundary Check for Dive
-            if (this.x < 0) this.x = 0;
-            if (this.x > this.game.width - this.width) this.x = this.game.width - this.width;
+            // X Boundary Check for Dive (Clamp, don't wrap side-to-side)
+            if (this.x < 0) {
+                this.x = 0;
+                // Bounce? or just clamp
+            }
+            if (this.x > this.game.width - this.width) {
+                this.x = this.game.width - this.width;
+            }
 
-            // Loop Top
+            // Loop Top (When going off bottom)
             if (this.y > this.game.height + 20) {
                 this.y = -30;
-                this.x = Math.random() * (this.game.width - 20) + 10;
+                // Respawn at random x or center? User said "center"
+                // "화면 외 가운데에서 빠르게 출현" -> slightly randomized center
+                this.x = (this.game.width / 2) + (Math.random() * 100 - 50);
                 this.state = 'dive';
+
+                // Increase speed on re-entry?
+                this.speedMult *= 1.1;
             }
         }
     }

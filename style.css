@@ -37,11 +37,11 @@ body {
     border-radius: 4px;
 
     width: 100vw;
-    max-width: 500px;
-    /* Slightly wider for modern feel */
+    max-width: 448px;
+    /* 224 * 2 */
     height: auto;
-    aspect-ratio: 3/4;
-    max-height: 95vh;
+    aspect-ratio: 224/288;
+    max-height: 90vh;
 
     margin: 0 auto;
     overflow: hidden;
